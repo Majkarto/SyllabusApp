@@ -1,9 +1,10 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SyllabusApp.Domain.Entities;
 
 namespace SyllabusApp.Infrastructure.Persistence;
 
-public class SyllabusDbContext : DbContext
+public class SyllabusDbContext : IdentityDbContext<User, Role, int>
 {
     public SyllabusDbContext(DbContextOptions<SyllabusDbContext> options)
         : base(options)
@@ -16,9 +17,10 @@ public class SyllabusDbContext : DbContext
     public DbSet<LearningOutcome> LearningOutcomes => Set<LearningOutcome>();
     public DbSet<Literature> Literature => Set<Literature>();
     public DbSet<WorkloadItem> WorkloadItems => Set<WorkloadItem>();
-    public DbSet<User> Users => Set<User>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<StudentGroup> StudentGroups => Set<StudentGroup>();
+    public DbSet<SyllabusVersion> SyllabusVersions => Set<SyllabusVersion>();
+    public DbSet<SyllabusApproval> SyllabusApprovals => Set<SyllabusApproval>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,7 +38,6 @@ public class SyllabusDbContext : DbContext
             .HasForeignKey(s => s.CoordinatorId)
             .OnDelete(DeleteBehavior.Restrict);
 
-
         modelBuilder.Entity<Faculty>()
             .HasOne(f => f.Dean)
             .WithMany()
@@ -51,9 +52,6 @@ public class SyllabusDbContext : DbContext
 
         modelBuilder.Entity<User>().Ignore(u => u.FullName);
 
-        modelBuilder.Entity<User>()
-            .HasIndex(u => u.Email)
-            .IsUnique();
 
         modelBuilder.Entity<Faculty>()
             .HasIndex(f => f.Code)
@@ -68,6 +66,40 @@ public class SyllabusDbContext : DbContext
 
         modelBuilder.Entity<StudentGroup>()
             .HasIndex(g => g.Name)
+            .IsUnique();
+
+        modelBuilder.Entity<SyllabusVersion>()
+            .HasOne(v => v.CreatedBy)
+            .WithMany()
+            .HasForeignKey(v => v.CreatedById)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<SyllabusVersion>()
+            .HasOne(v => v.Syllabus)
+            .WithMany(s => s.Versions)
+            .HasForeignKey(v => v.SyllabusId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SyllabusApproval>()
+            .HasOne(a => a.PerformedBy)
+            .WithMany()
+            .HasForeignKey(a => a.PerformedById)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<SyllabusApproval>()
+            .HasOne(a => a.Syllabus)
+            .WithMany(s => s.Approvals)
+            .HasForeignKey(a => a.SyllabusId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SyllabusApproval>()
+            .HasOne(a => a.SyllabusVersion)
+            .WithMany()
+            .HasForeignKey(a => a.SyllabusVersionId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<SyllabusVersion>()
+            .HasIndex(v => new { v.SyllabusId, v.VersionNumber })
             .IsUnique();
     }
 }

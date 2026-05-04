@@ -20,6 +20,8 @@ public class Syllabus : BaseEntity
     public ICollection<LearningOutcome> LearningOutcomes { get; set; } = new List<LearningOutcome>();
     public ICollection<Literature> Literature { get; set; } = new List<Literature>();
     public ICollection<WorkloadItem> WorkloadItems { get; set; } = new List<WorkloadItem>();
+    public ICollection<SyllabusVersion> Versions { get; set; } = new List<SyllabusVersion>();
+    public ICollection<SyllabusApproval> Approvals { get; set; } = new List<SyllabusApproval>();
 }
 public enum SyllabusStatus
 {
