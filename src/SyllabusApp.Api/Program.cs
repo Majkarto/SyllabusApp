@@ -117,4 +117,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Seedowanie rol i domyslnego admina przy starcie
+await SyllabusApp.Infrastructure.Persistence.DataSeeder.SeedAsync(app.Services);
 app.Run();

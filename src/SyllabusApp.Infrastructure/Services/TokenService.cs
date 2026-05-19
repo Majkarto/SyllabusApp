@@ -17,7 +17,7 @@ public class TokenService : ITokenService
         _configuration = configuration;
     }
 
-    public string GenerateAccessToken(User user, IList<string> roles)
+    public TokenResult GenerateAccessToken(User user, IList<string> roles)
     {
         // 1. Konfiguracja z appsettings + User Secrets
         var jwtKey = _configuration["Jwt:Key"]
@@ -28,7 +28,9 @@ public class TokenService : ITokenService
             ?? throw new InvalidOperationException("Jwt:Audience nie jest skonfigurowany.");
         var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "60");
 
-        // 2. Claims - "fakty" o userze zaszyte w tokenie
+        var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
+
+        // 2. Claims
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -39,32 +41,30 @@ public class TokenService : ITokenService
             new Claim("lastName", user.LastName),
         };
 
-        // 3. FacultyId opcjonalnie (nullable)
         if (user.FacultyId.HasValue)
         {
             claims.Add(new Claim("facultyId", user.FacultyId.Value.ToString()));
         }
 
-        // 4. Role - każda jako osobny claim typu Role
         foreach (var role in roles)
         {
             claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
-        // 5. Klucz symetryczny + podpis HMAC-SHA256
+        // 3. Podpis + token
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        // 6. Składanie tokenu
         var token = new JwtSecurityToken(
             issuer: jwtIssuer,
             audience: jwtAudience,
             claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
+            expires: expiresAt,
             signingCredentials: credentials
         );
 
-        // 7. Serializacja
-        return new JwtSecurityTokenHandler().WriteToken(token);
+        var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+
+        return new TokenResult(tokenString, expiresAt);
     }
 }
