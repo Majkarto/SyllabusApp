@@ -156,4 +156,32 @@ public class AuthController : ControllerBase
 
         return Ok(response);
     }
+    /// <summary>
+    /// Zwraca dane zalogowanego usera na podstawie tokenu JWT.
+    /// Endpoint testowy - sprawdza czy [Authorize] i czytanie claimów działa.
+    /// </summary>
+    [HttpGet("me")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public IActionResult GetCurrentUser()
+    {
+        // User to wbudowana property w ControllerBase typu ClaimsPrincipal
+        // Middleware Authentication zapełnił go danymi z tokena (jeśli token był poprawny)
+        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                    ?? User.FindFirst("email")?.Value;
+        var firstName = User.FindFirst("firstName")?.Value;
+        var lastName = User.FindFirst("lastName")?.Value;
+        var roles = User.FindAll(System.Security.Claims.ClaimTypes.Role)
+            .Select(c => c.Value)
+            .ToList();
+
+        return Ok(new
+        {
+            userId,
+            email,
+            firstName,
+            lastName,
+            roles
+        });
+    }
 }
