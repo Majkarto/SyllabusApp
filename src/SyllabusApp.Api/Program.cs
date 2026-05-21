@@ -15,11 +15,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-// === DbContext (PostgreSQL) ===
 builder.Services.AddDbContext<SyllabusDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// === ASP.NET Core Identity ===
+// ASP.NET Core Identity
 builder.Services.AddIdentity<User, Role>(options =>
 {
     options.Password.RequireDigit = true;
@@ -34,10 +33,10 @@ builder.Services.AddIdentity<User, Role>(options =>
 .AddEntityFrameworkStores<SyllabusDbContext>()
 .AddDefaultTokenProviders();
 
-// === Rejestracja TokenService ===
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<ILocationService, LocationService>();
 
-// === Konfiguracja JwtBearer ===
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -64,10 +63,6 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 });
-
-// === Natywne OpenAPI w .NET 10 ===
-// Generuje plik openapi.json z metadanych ASP.NET (tytuł, endpointy, modele)
-// Konfigurujemy też schemat Bearer - żeby Scalar wiedział że trzeba móc wkleić token
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -99,25 +94,16 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
-    // Endpoint który zwraca openapi.json (pod /openapi/v1.json)
     app.MapOpenApi();
-
-    // Scalar UI - pod /scalar/v1
     app.MapScalarApiReference(options =>
     {
-        options.WithTitle("Syllabus Management API")
-               .WithTheme(ScalarTheme.Default);
+        options.WithTitle("Syllabus Management API").WithTheme(ScalarTheme.Default);
     });
 }
 
 app.UseHttpsRedirection();
-
-// === Authentication PRZED Authorization ===
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
-// Seedowanie rol i domyslnego admina przy starcie
 await SyllabusApp.Infrastructure.Persistence.DataSeeder.SeedAsync(app.Services);
 app.Run();
