@@ -12,7 +12,10 @@ using SyllabusApp.Infrastructure.Services;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter()));
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<SyllabusDbContext>(options =>
@@ -35,6 +38,7 @@ builder.Services.AddIdentity<User, Role>(options =>
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
+builder.Services.AddScoped<IFacultyService, FacultyService>();
 
 
 builder.Services.AddAuthentication(options =>
