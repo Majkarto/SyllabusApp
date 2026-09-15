@@ -18,42 +18,42 @@ public class FieldOfStudyService : IFieldOfStudyService
     {
         return await _dbContext.FieldsOfStudy
             .AsNoTracking()
-            .Include(f => f.Name)
-            .OrderBy(f => f.Faculty.Name)
+            .Include(f => f.Faculty)
+            .OrderBy(f => f.Name)
             .Select(f => f.ToDto())
             .ToListAsync();
     }
 
     public async Task<FieldOfStudyDto?> GetByIdAsync(int id)
     {
-        var faculty = await _dbContext.FieldsOfStudy
+        var fieldOfStudy = await _dbContext.FieldsOfStudy
             .AsNoTracking()
-            .Include(f => f.Faculty.Name)
+            .Include(f => f.Faculty)
             .FirstOrDefaultAsync(f => f.Id == id);
 
-        return faculty?.ToDto();
+        return fieldOfStudy?.ToDto();
     }
 
     public async Task<FieldOfStudyResult> CreateAsync(CreateFieldOfStudyDto dto)
     {
-        var facultyExists = await _dbContext.Faculties.AnyAsync(l => l.Id == dto.FacultyId);
+        var facultyExists = await _dbContext.Faculties.AnyAsync(f => f.Id == dto.FacultyId);
         if (!facultyExists)
         {
-            return FieldOfStudyError.Fail(FieldOfStudyError.facyltyNotFound,
+            return FieldOfStudyResult.Fail(FieldOfStudyError.FacultyNotFound,
                 $"Nie znaleziono wydziału o id {dto.FacultyId}.");
         }
-        
+
         var codeExists = await _dbContext.FieldsOfStudy.AnyAsync(f => f.Code == dto.Code);
         if (codeExists)
         {
             return FieldOfStudyResult.Fail(FieldOfStudyError.CodeAlreadyExists,
-                $"kierunek nauki o kodzie '{dto.Code}' już istnieje.");
+                $"Kierunek studiów o kodzie '{dto.Code}' już istnieje.");
         }
 
         var fieldOfStudy = dto.ToEntity();
         _dbContext.FieldsOfStudy.Add(fieldOfStudy);
         await _dbContext.SaveChangesAsync();
-        
+
         await _dbContext.Entry(fieldOfStudy).Reference(f => f.Faculty).LoadAsync();
 
         return FieldOfStudyResult.Ok(fieldOfStudy.ToDto());
@@ -65,22 +65,22 @@ public class FieldOfStudyService : IFieldOfStudyService
         if (fieldOfStudy == null)
         {
             return FieldOfStudyResult.Fail(FieldOfStudyError.NotFound,
-                $"Nie znaleziono kierunku nauki o id {id}.");
+                $"Nie znaleziono kierunku studiów o id {id}.");
         }
-        
-        var facultyExists = await _dbContext.Faculties.AnyAsync(l => l.Id == dto.FacultyId);
+
+        var facultyExists = await _dbContext.Faculties.AnyAsync(f => f.Id == dto.FacultyId);
         if (!facultyExists)
         {
-            return FieldOfStudyResult.Fail(FieldOfStudyError.FaculityNotFound,
-                $"Nie znaleziono placówki o id {dto.FacultyId}.");
+            return FieldOfStudyResult.Fail(FieldOfStudyError.FacultyNotFound,
+                $"Nie znaleziono wydziału o id {dto.FacultyId}.");
         }
-        
+
         var codeExists = await _dbContext.FieldsOfStudy
             .AnyAsync(f => f.Code == dto.Code && f.Id != id);
         if (codeExists)
         {
             return FieldOfStudyResult.Fail(FieldOfStudyError.CodeAlreadyExists,
-                $"kierunek nauki o kodzie '{dto.Code}' już istnieje.");
+                $"Kierunek studiów o kodzie '{dto.Code}' już istnieje.");
         }
 
         fieldOfStudy.ApplyUpdate(dto);
@@ -93,13 +93,13 @@ public class FieldOfStudyService : IFieldOfStudyService
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var fieldOfStudyResult = await _dbContext.FieldsOfStudy.FirstOrDefaultAsync(f => f.Id == id);
-        if (fieldOfStudyResult == null)
+        var fieldOfStudy = await _dbContext.FieldsOfStudy.FirstOrDefaultAsync(f => f.Id == id);
+        if (fieldOfStudy == null)
         {
             return false;
         }
 
-        _dbContext.FieldsOfStudy.Remove(fieldOfStudyResult);
+        _dbContext.FieldsOfStudy.Remove(fieldOfStudy);
         await _dbContext.SaveChangesAsync();
         return true;
     }

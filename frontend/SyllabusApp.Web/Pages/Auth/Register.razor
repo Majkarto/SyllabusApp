@@ -1,0 +1,78 @@
+@page "/register"
+@using SyllabusApp.Application.Dtos.Auth
+@layout EmptyLayout
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<PageTitle>Rejestracja</PageTitle>
+
+<div class="flex min-h-screen items-center justify-center bg-slate-50">
+    <div class="w-full max-w-sm rounded-lg bg-white p-8 shadow">
+        <h1 class="mb-6 text-2xl font-semibold text-slate-800">Załóż konto</h1>
+
+        <EditForm Model="_model" OnValidSubmit="HandleRegisterAsync">
+            <DataAnnotationsValidator />
+
+            <div class="mb-4">
+                <label class="mb-1 block text-sm font-medium text-slate-700">Imię</label>
+                <InputText @bind-Value="_model.FirstName" class="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none" />
+                <ValidationMessage For="@(() => _model.FirstName)" class="mt-1 block text-sm text-red-600" />
+            </div>
+
+            <div class="mb-4">
+                <label class="mb-1 block text-sm font-medium text-slate-700">Nazwisko</label>
+                <InputText @bind-Value="_model.LastName" class="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none" />
+                <ValidationMessage For="@(() => _model.LastName)" class="mt-1 block text-sm text-red-600" />
+            </div>
+
+            <div class="mb-4">
+                <label class="mb-1 block text-sm font-medium text-slate-700">Email</label>
+                <InputText @bind-Value="_model.Email" class="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none" />
+                <ValidationMessage For="@(() => _model.Email)" class="mt-1 block text-sm text-red-600" />
+            </div>
+
+            <div class="mb-6">
+                <label class="mb-1 block text-sm font-medium text-slate-700">Hasło</label>
+                <InputText type="password" @bind-Value="_model.Password" class="w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none" />
+                <ValidationMessage For="@(() => _model.Password)" class="mt-1 block text-sm text-red-600" />
+            </div>
+
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <div class="mb-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+            }
+
+            <button type="submit" class="w-full rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Rejestrowanie..." : "Zarejestruj się")
+            </button>
+        </EditForm>
+
+        <p class="mt-4 text-center text-sm text-slate-600">
+            Masz już konto? <a href="/login" class="text-blue-600 hover:underline">Zaloguj się</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private readonly RegisterDto _model = new();
+    private string? _errorMessage;
+    private bool _isSubmitting;
+
+    private async Task HandleRegisterAsync()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var result = await AuthService.RegisterAsync(_model);
+
+        _isSubmitting = false;
+
+        if (!result.Success)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        Navigation.NavigateTo("/");
+    }
+}

@@ -1,0 +1,135 @@
+@page "/locations/create"
+@page "/locations/{Id:int}/edit"
+@attribute [Authorize(Roles = UserRoles.Admin)]
+@using SyllabusApp.Application.Dtos.Locations
+@using SyllabusApp.Web.Services.ApiClients
+@inject LocationApiClient LocationApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id.HasValue ? "Edytuj lokalizację" : "Nowa lokalizacja")</PageTitle>
+
+<h1 class="text-2xl font-semibold text-slate-800">@(Id.HasValue ? "Edytuj lokalizację" : "Nowa lokalizacja")</h1>
+
+@if (_loading)
+{
+    <p class="mt-4 text-slate-500">Ładowanie...</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync" class="mt-6 max-w-lg space-y-4">
+        <DataAnnotationsValidator />
+
+        <div>
+            <label class="form-label">Nazwa</label>
+            <InputText @bind-Value="_model.Name" class="form-input" />
+            <ValidationMessage For="@(() => _model.Name)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Adres</label>
+            <InputText @bind-Value="_model.Address" class="form-input" />
+            <ValidationMessage For="@(() => _model.Address)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Miasto</label>
+            <InputText @bind-Value="_model.City" class="form-input" />
+            <ValidationMessage For="@(() => _model.City)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Kod pocztowy</label>
+            <InputText @bind-Value="_model.PostalCode" class="form-input" />
+            <ValidationMessage For="@(() => _model.PostalCode)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Kod budynku (opcjonalnie)</label>
+            <InputText @bind-Value="_model.BuildingCode" class="form-input" />
+        </div>
+
+        @if (_errorMessage != null)
+        {
+            <div class="rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+        }
+
+        <div class="flex gap-3">
+            <button type="submit" class="btn-primary" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Zapisywanie..." : "Zapisz")
+            </button>
+            <a href="/locations" class="btn-secondary">Anuluj</a>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    // Create/UpdateLocationDto mają te same pola - używamy Create jako modelu formularza
+    // dla obu trybów, żeby nie duplikować atrybutów walidacji.
+    private readonly CreateLocationDto _model = new();
+    private bool _loading;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Id.HasValue)
+        {
+            return;
+        }
+
+        _loading = true;
+        var existing = await LocationApiClient.GetByIdAsync(Id.Value);
+        if (existing != null)
+        {
+            _model.Name = existing.Name;
+            _model.Address = existing.Address;
+            _model.City = existing.City;
+            _model.PostalCode = existing.PostalCode;
+            _model.BuildingCode = existing.BuildingCode;
+        }
+        _loading = false;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var success = Id.HasValue
+            ? await UpdateAsync(Id.Value)
+            : await CreateAsync();
+
+        _isSubmitting = false;
+
+        if (success)
+        {
+            Navigation.NavigateTo("/locations");
+        }
+    }
+
+    private async Task<bool> CreateAsync()
+    {
+        var result = await LocationApiClient.CreateAsync(_model);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+
+    private async Task<bool> UpdateAsync(int id)
+    {
+        var dto = new UpdateLocationDto
+        {
+            Name = _model.Name,
+            Address = _model.Address,
+            City = _model.City,
+            PostalCode = _model.PostalCode,
+            BuildingCode = _model.BuildingCode,
+        };
+
+        var result = await LocationApiClient.UpdateAsync(id, dto);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+}

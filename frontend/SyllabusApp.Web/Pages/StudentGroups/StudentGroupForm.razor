@@ -1,0 +1,136 @@
+@page "/student-groups/create"
+@page "/student-groups/{Id:int}/edit"
+@attribute [Authorize(Roles = UserRoles.Admin)]
+@using SyllabusApp.Application.Dtos.StudentGroups
+@using SyllabusApp.Application.Dtos.FieldOfStudies
+@using SyllabusApp.Web.Services.ApiClients
+@inject StudentGroupApiClient StudentGroupApiClient
+@inject FieldOfStudyApiClient FieldOfStudyApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id.HasValue ? "Edytuj grupę" : "Nowa grupa")</PageTitle>
+
+<h1 class="text-2xl font-semibold text-slate-800">@(Id.HasValue ? "Edytuj grupę" : "Nowa grupa")</h1>
+
+@if (_loading)
+{
+    <p class="mt-4 text-slate-500">Ładowanie...</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync" class="mt-6 max-w-lg space-y-4">
+        <DataAnnotationsValidator />
+
+        <div>
+            <label class="form-label">Nazwa</label>
+            <InputText @bind-Value="_model.Name" class="form-input" />
+            <ValidationMessage For="@(() => _model.Name)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Bieżący semestr</label>
+            <InputNumber @bind-Value="_model.CurrentSemester" class="form-input" />
+            <ValidationMessage For="@(() => _model.CurrentSemester)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Rok rozpoczęcia</label>
+            <InputNumber @bind-Value="_model.StartYear" class="form-input" />
+            <ValidationMessage For="@(() => _model.StartYear)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Kierunek studiów</label>
+            <InputSelect @bind-Value="_model.FieldOfStudyId" class="form-input">
+                <option value="0">-- wybierz --</option>
+                @foreach (var fieldOfStudy in _fieldsOfStudy)
+                {
+                    <option value="@fieldOfStudy.Id">@fieldOfStudy.Name (@fieldOfStudy.Code)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => _model.FieldOfStudyId)" class="form-error" />
+        </div>
+
+        @if (_errorMessage != null)
+        {
+            <div class="rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+        }
+
+        <div class="flex gap-3">
+            <button type="submit" class="btn-primary" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Zapisywanie..." : "Zapisz")
+            </button>
+            <a href="/student-groups" class="btn-secondary">Anuluj</a>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private readonly CreateStudentGroupDto _model = new();
+    private List<FieldOfStudyDto> _fieldsOfStudy = [];
+    private bool _loading;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _fieldsOfStudy = await FieldOfStudyApiClient.GetAllAsync();
+
+        if (Id.HasValue)
+        {
+            var existing = await StudentGroupApiClient.GetByIdAsync(Id.Value);
+            if (existing != null)
+            {
+                _model.Name = existing.Name;
+                _model.CurrentSemester = existing.CurrentSemester;
+                _model.StartYear = existing.StartYear;
+                _model.FieldOfStudyId = existing.FieldOfStudyId;
+            }
+        }
+
+        _loading = false;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var success = Id.HasValue
+            ? await UpdateAsync(Id.Value)
+            : await CreateAsync();
+
+        _isSubmitting = false;
+
+        if (success)
+        {
+            Navigation.NavigateTo("/student-groups");
+        }
+    }
+
+    private async Task<bool> CreateAsync()
+    {
+        var result = await StudentGroupApiClient.CreateAsync(_model);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+
+    private async Task<bool> UpdateAsync(int id)
+    {
+        var dto = new UpdateStudentGroupDto
+        {
+            Name = _model.Name,
+            CurrentSemester = _model.CurrentSemester,
+            StartYear = _model.StartYear,
+            FieldOfStudyId = _model.FieldOfStudyId,
+        };
+
+        var result = await StudentGroupApiClient.UpdateAsync(id, dto);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+}

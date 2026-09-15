@@ -1,0 +1,102 @@
+@page "/student-groups"
+@attribute [Authorize]
+@using SyllabusApp.Application.Dtos.StudentGroups
+@using SyllabusApp.Web.Services.ApiClients
+@inject StudentGroupApiClient StudentGroupApiClient
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Grupy studenckie</PageTitle>
+
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-slate-800">Grupy studenckie</h1>
+    <AuthorizeView Roles="@UserRoles.Admin">
+        <Authorized>
+            <a href="/student-groups/create" class="btn-primary">+ Dodaj grupę</a>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@if (_errorMessage != null)
+{
+    <div class="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+}
+
+@if (_studentGroups == null)
+{
+    <p class="mt-4 text-slate-500">Ładowanie...</p>
+}
+else if (_studentGroups.Count == 0)
+{
+    <p class="mt-4 text-slate-500">Brak grup studenckich.</p>
+}
+else
+{
+    <div class="mt-4 overflow-x-auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nazwa</th>
+                    <th>Semestr</th>
+                    <th>Rok rozpoczęcia</th>
+                    <th>Aktywna</th>
+                    <th>Kierunek studiów</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in _studentGroups)
+                {
+                    <tr>
+                        <td>@group.Name</td>
+                        <td>@group.CurrentSemester</td>
+                        <td>@group.StartYear</td>
+                        <td>@(group.IsActive ? "Tak" : "Nie")</td>
+                        <td>@group.FieldOfStudyName</td>
+                        <td class="text-right">
+                            <AuthorizeView Roles="@UserRoles.Admin">
+                                <Authorized>
+                                    <a href="/student-groups/@group.Id/edit" class="text-blue-600 hover:underline">Edytuj</a>
+                                    <button type="button" class="ml-3 text-red-600 hover:underline" @onclick="() => DeleteAsync(group)">Usuń</button>
+                                </Authorized>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<StudentGroupDto>? _studentGroups;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _studentGroups = await StudentGroupApiClient.GetAllAsync();
+    }
+
+    private async Task DeleteAsync(StudentGroupDto group)
+    {
+        var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", $"Usunąć grupę „{group.Name}”?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var result = await StudentGroupApiClient.DeleteAsync(group.Id);
+        if (!result.Success)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _errorMessage = null;
+        await LoadAsync();
+    }
+}

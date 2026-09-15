@@ -39,6 +39,13 @@ builder.Services.AddIdentity<User, Role>(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
 builder.Services.AddScoped<IFacultyService, FacultyService>();
+builder.Services.AddScoped<IFieldOfStudyService, FieldOfStudyService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<IStudentGroupService, StudentGroupService>();
+builder.Services.AddScoped<ILearningOutcomeService, LearningOutcomeService>();
+builder.Services.AddScoped<ILiteratureService, LiteratureService>();
+builder.Services.AddScoped<IWorkloadItemService, WorkloadItemService>();
+builder.Services.AddScoped<ISyllabusService, SyllabusService>();
 
 
 builder.Services.AddAuthentication(options =>
@@ -67,6 +74,17 @@ builder.Services.AddAuthentication(options =>
         ClockSkew = TimeSpan.Zero
     };
 });
+const string BlazorClientCorsPolicy = "BlazorClient";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(BlazorClientCorsPolicy, policy =>
+    {
+        policy.WithOrigins("https://localhost:7234", "http://localhost:5142")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer((document, context, cancellationToken) =>
@@ -106,6 +124,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors(BlazorClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

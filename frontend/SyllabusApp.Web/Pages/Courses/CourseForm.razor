@@ -1,0 +1,136 @@
+@page "/courses/create"
+@page "/courses/{Id:int}/edit"
+@attribute [Authorize(Roles = UserRoles.Admin)]
+@using SyllabusApp.Application.Dtos.Courses
+@using SyllabusApp.Application.Dtos.FieldOfStudies
+@using SyllabusApp.Web.Services.ApiClients
+@inject CourseApiClient CourseApiClient
+@inject FieldOfStudyApiClient FieldOfStudyApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id.HasValue ? "Edytuj przedmiot" : "Nowy przedmiot")</PageTitle>
+
+<h1 class="text-2xl font-semibold text-slate-800">@(Id.HasValue ? "Edytuj przedmiot" : "Nowy przedmiot")</h1>
+
+@if (_loading)
+{
+    <p class="mt-4 text-slate-500">Ładowanie...</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync" class="mt-6 max-w-lg space-y-4">
+        <DataAnnotationsValidator />
+
+        <div>
+            <label class="form-label">Nazwa</label>
+            <InputText @bind-Value="_model.Name" class="form-input" />
+            <ValidationMessage For="@(() => _model.Name)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Kod</label>
+            <InputText @bind-Value="_model.Code" class="form-input" />
+            <ValidationMessage For="@(() => _model.Code)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Semestr</label>
+            <InputNumber @bind-Value="_model.Semester" class="form-input" />
+            <ValidationMessage For="@(() => _model.Semester)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Kierunek studiów</label>
+            <InputSelect @bind-Value="_model.FieldOfStudyId" class="form-input">
+                <option value="0">-- wybierz --</option>
+                @foreach (var fieldOfStudy in _fieldsOfStudy)
+                {
+                    <option value="@fieldOfStudy.Id">@fieldOfStudy.Name (@fieldOfStudy.Code)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => _model.FieldOfStudyId)" class="form-error" />
+        </div>
+
+        @if (_errorMessage != null)
+        {
+            <div class="rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+        }
+
+        <div class="flex gap-3">
+            <button type="submit" class="btn-primary" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Zapisywanie..." : "Zapisz")
+            </button>
+            <a href="/courses" class="btn-secondary">Anuluj</a>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private readonly CreateCourseDto _model = new();
+    private List<FieldOfStudyDto> _fieldsOfStudy = [];
+    private bool _loading;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _fieldsOfStudy = await FieldOfStudyApiClient.GetAllAsync();
+
+        if (Id.HasValue)
+        {
+            var existing = await CourseApiClient.GetByIdAsync(Id.Value);
+            if (existing != null)
+            {
+                _model.Name = existing.Name;
+                _model.Code = existing.Code;
+                _model.Semester = existing.Semester;
+                _model.FieldOfStudyId = existing.FieldOfStudyId;
+            }
+        }
+
+        _loading = false;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var success = Id.HasValue
+            ? await UpdateAsync(Id.Value)
+            : await CreateAsync();
+
+        _isSubmitting = false;
+
+        if (success)
+        {
+            Navigation.NavigateTo("/courses");
+        }
+    }
+
+    private async Task<bool> CreateAsync()
+    {
+        var result = await CourseApiClient.CreateAsync(_model);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+
+    private async Task<bool> UpdateAsync(int id)
+    {
+        var dto = new UpdateCourseDto
+        {
+            Name = _model.Name,
+            Code = _model.Code,
+            Semester = _model.Semester,
+            FieldOfStudyId = _model.FieldOfStudyId,
+        };
+
+        var result = await CourseApiClient.UpdateAsync(id, dto);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+}

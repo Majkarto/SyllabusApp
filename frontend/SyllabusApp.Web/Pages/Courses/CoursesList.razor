@@ -1,0 +1,100 @@
+@page "/courses"
+@attribute [Authorize]
+@using SyllabusApp.Application.Dtos.Courses
+@using SyllabusApp.Web.Services.ApiClients
+@inject CourseApiClient CourseApiClient
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Przedmioty</PageTitle>
+
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-slate-800">Przedmioty</h1>
+    <AuthorizeView Roles="@UserRoles.Admin">
+        <Authorized>
+            <a href="/courses/create" class="btn-primary">+ Dodaj przedmiot</a>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@if (_errorMessage != null)
+{
+    <div class="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+}
+
+@if (_courses == null)
+{
+    <p class="mt-4 text-slate-500">Ładowanie...</p>
+}
+else if (_courses.Count == 0)
+{
+    <p class="mt-4 text-slate-500">Brak przedmiotów.</p>
+}
+else
+{
+    <div class="mt-4 overflow-x-auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Nazwa</th>
+                    <th>Kod</th>
+                    <th>Semestr</th>
+                    <th>Kierunek studiów</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var course in _courses)
+                {
+                    <tr>
+                        <td>@course.Name</td>
+                        <td>@course.Code</td>
+                        <td>@course.Semester</td>
+                        <td>@course.FieldOfStudyName</td>
+                        <td class="text-right">
+                            <AuthorizeView Roles="@UserRoles.Admin">
+                                <Authorized>
+                                    <a href="/courses/@course.Id/edit" class="text-blue-600 hover:underline">Edytuj</a>
+                                    <button type="button" class="ml-3 text-red-600 hover:underline" @onclick="() => DeleteAsync(course)">Usuń</button>
+                                </Authorized>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<CourseDto>? _courses;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _courses = await CourseApiClient.GetAllAsync();
+    }
+
+    private async Task DeleteAsync(CourseDto course)
+    {
+        var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", $"Usunąć przedmiot „{course.Name}”?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var result = await CourseApiClient.DeleteAsync(course.Id);
+        if (!result.Success)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _errorMessage = null;
+        await LoadAsync();
+    }
+}

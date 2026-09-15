@@ -1,0 +1,151 @@
+@page "/fields-of-study/create"
+@page "/fields-of-study/{Id:int}/edit"
+@attribute [Authorize(Roles = UserRoles.Admin)]
+@using SyllabusApp.Application.Dtos.FieldOfStudies
+@using SyllabusApp.Application.Dtos.Faculties
+@using SyllabusApp.Domain.Entities
+@using SyllabusApp.Web.Services.ApiClients
+@inject FieldOfStudyApiClient FieldOfStudyApiClient
+@inject FacultyApiClient FacultyApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id.HasValue ? "Edytuj kierunek" : "Nowy kierunek")</PageTitle>
+
+<h1 class="text-2xl font-semibold text-slate-800">@(Id.HasValue ? "Edytuj kierunek" : "Nowy kierunek")</h1>
+
+@if (_loading)
+{
+    <p class="mt-4 text-slate-500">Ładowanie...</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync" class="mt-6 max-w-lg space-y-4">
+        <DataAnnotationsValidator />
+
+        <div>
+            <label class="form-label">Nazwa</label>
+            <InputText @bind-Value="_model.Name" class="form-input" />
+            <ValidationMessage For="@(() => _model.Name)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Kod</label>
+            <InputText @bind-Value="_model.Code" class="form-input" />
+            <ValidationMessage For="@(() => _model.Code)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Poziom studiów</label>
+            <InputSelect @bind-Value="_model.Level" class="form-input">
+                @foreach (var level in Enum.GetValues<StudyLevel>())
+                {
+                    <option value="@level">@level</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div>
+            <label class="form-label">Liczba semestrów</label>
+            <InputNumber @bind-Value="_model.DurationSemesters" class="form-input" />
+            <ValidationMessage For="@(() => _model.DurationSemesters)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Wydział</label>
+            <InputSelect @bind-Value="_model.FacultyId" class="form-input">
+                <option value="0">-- wybierz --</option>
+                @foreach (var faculty in _faculties)
+                {
+                    <option value="@faculty.Id">@faculty.Name (@faculty.Code)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => _model.FacultyId)" class="form-error" />
+        </div>
+
+        @if (_errorMessage != null)
+        {
+            <div class="rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+        }
+
+        <div class="flex gap-3">
+            <button type="submit" class="btn-primary" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Zapisywanie..." : "Zapisz")
+            </button>
+            <a href="/fields-of-study" class="btn-secondary">Anuluj</a>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    // Enum StudyLevel zaczyna się od 1 - jawnie ustawiamy domyślną wartość, bo <InputSelect>
+    // wizualnie pokazuje pierwszą opcję, ale bez tego model zostałby przy default(enum)=0.
+    private readonly CreateFieldOfStudyDto _model = new() { Level = StudyLevel.Bachelor };
+    private List<FacultyDto> _faculties = [];
+    private bool _loading;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _faculties = await FacultyApiClient.GetAllAsync();
+
+        if (Id.HasValue)
+        {
+            var existing = await FieldOfStudyApiClient.GetByIdAsync(Id.Value);
+            if (existing != null)
+            {
+                _model.Name = existing.Name;
+                _model.Code = existing.Code;
+                _model.Level = existing.Level;
+                _model.DurationSemesters = existing.DurationSemesters;
+                _model.FacultyId = existing.FacultyId;
+            }
+        }
+
+        _loading = false;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var success = Id.HasValue
+            ? await UpdateAsync(Id.Value)
+            : await CreateAsync();
+
+        _isSubmitting = false;
+
+        if (success)
+        {
+            Navigation.NavigateTo("/fields-of-study");
+        }
+    }
+
+    private async Task<bool> CreateAsync()
+    {
+        var result = await FieldOfStudyApiClient.CreateAsync(_model);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+
+    private async Task<bool> UpdateAsync(int id)
+    {
+        var dto = new UpdateFieldOfStudyDto
+        {
+            Name = _model.Name,
+            Code = _model.Code,
+            Level = _model.Level,
+            DurationSemesters = _model.DurationSemesters,
+            FacultyId = _model.FacultyId,
+        };
+
+        var result = await FieldOfStudyApiClient.UpdateAsync(id, dto);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+}

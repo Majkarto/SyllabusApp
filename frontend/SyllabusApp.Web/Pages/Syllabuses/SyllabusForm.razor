@@ -1,0 +1,175 @@
+@page "/syllabuses/create"
+@page "/syllabuses/{Id:int}/edit"
+@attribute [Authorize(Roles = $"{UserRoles.Admin},{UserRoles.Lecturer}")]
+@using SyllabusApp.Application.Dtos.Syllabuses
+@using SyllabusApp.Application.Dtos.Courses
+@using SyllabusApp.Web.Services.ApiClients
+@inject SyllabusApiClient SyllabusApiClient
+@inject CourseApiClient CourseApiClient
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id.HasValue ? "Edytuj sylabus" : "Nowy sylabus")</PageTitle>
+
+<h1 class="text-2xl font-semibold text-slate-800">@(Id.HasValue ? "Edytuj sylabus" : "Nowy sylabus")</h1>
+
+@if (_loading)
+{
+    <p class="mt-4 text-slate-500">Ładowanie...</p>
+}
+else
+{
+    <EditForm Model="_model" OnValidSubmit="SubmitAsync" class="mt-6 max-w-2xl space-y-4">
+        <DataAnnotationsValidator />
+
+        <div>
+            <label class="form-label">Przedmiot</label>
+            <InputSelect @bind-Value="_model.CourseId" class="form-input">
+                <option value="0">-- wybierz --</option>
+                @foreach (var course in _courses)
+                {
+                    <option value="@course.Id">@course.Name (@course.Code)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => _model.CourseId)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Rok akademicki</label>
+            <InputText @bind-Value="_model.AcademicYear" class="form-input" placeholder="np. 2026/2027" />
+            <ValidationMessage For="@(() => _model.AcademicYear)" class="form-error" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="form-label">Punkty ECTS</label>
+                <InputNumber @bind-Value="_model.EctsPoints" class="form-input" />
+                <ValidationMessage For="@(() => _model.EctsPoints)" class="form-error" />
+            </div>
+            <div>
+                <label class="form-label">Godziny wykładów</label>
+                <InputNumber @bind-Value="_model.LectureHours" class="form-input" />
+                <ValidationMessage For="@(() => _model.LectureHours)" class="form-error" />
+            </div>
+            <div>
+                <label class="form-label">Godziny ćwiczeń</label>
+                <InputNumber @bind-Value="_model.ExerciseHours" class="form-input" />
+                <ValidationMessage For="@(() => _model.ExerciseHours)" class="form-error" />
+            </div>
+            <div>
+                <label class="form-label">Godziny laboratoriów</label>
+                <InputNumber @bind-Value="_model.LaboratoryHours" class="form-input" />
+                <ValidationMessage For="@(() => _model.LaboratoryHours)" class="form-error" />
+            </div>
+        </div>
+
+        <div>
+            <label class="form-label">Cel zajęć</label>
+            <InputTextArea @bind-Value="_model.CourseObjectives" class="form-input" rows="3" />
+            <ValidationMessage For="@(() => _model.CourseObjectives)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Metoda oceny</label>
+            <InputTextArea @bind-Value="_model.AssessmentMethod" class="form-input" rows="3" />
+            <ValidationMessage For="@(() => _model.AssessmentMethod)" class="form-error" />
+        </div>
+
+        <div>
+            <label class="form-label">Warunki wstępne</label>
+            <InputTextArea @bind-Value="_model.Prerequisites" class="form-input" rows="3" />
+            <ValidationMessage For="@(() => _model.Prerequisites)" class="form-error" />
+        </div>
+
+        @if (_errorMessage != null)
+        {
+            <div class="rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+        }
+
+        <div class="flex gap-3">
+            <button type="submit" class="btn-primary" disabled="@_isSubmitting">
+                @(_isSubmitting ? "Zapisywanie..." : "Zapisz")
+            </button>
+            <a href="/syllabuses" class="btn-secondary">Anuluj</a>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private readonly CreateSyllabusDto _model = new();
+    private List<CourseDto> _courses = [];
+    private bool _loading;
+    private bool _isSubmitting;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _loading = true;
+        _courses = await CourseApiClient.GetAllAsync();
+
+        if (Id.HasValue)
+        {
+            var existing = await SyllabusApiClient.GetByIdAsync(Id.Value);
+            if (existing != null)
+            {
+                _model.AcademicYear = existing.AcademicYear;
+                _model.EctsPoints = existing.EctsPoints;
+                _model.LectureHours = existing.LectureHours;
+                _model.ExerciseHours = existing.ExerciseHours;
+                _model.LaboratoryHours = existing.LaboratoryHours;
+                _model.CourseObjectives = existing.CourseObjectives;
+                _model.AssessmentMethod = existing.AssessmentMethod;
+                _model.Prerequisites = existing.Prerequisites;
+                _model.CourseId = existing.CourseId;
+            }
+        }
+
+        _loading = false;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _isSubmitting = true;
+        _errorMessage = null;
+
+        var success = Id.HasValue
+            ? await UpdateAsync(Id.Value)
+            : await CreateAsync();
+
+        _isSubmitting = false;
+
+        if (success)
+        {
+            Navigation.NavigateTo(Id.HasValue ? $"/syllabuses/{Id.Value}" : "/syllabuses");
+        }
+    }
+
+    private async Task<bool> CreateAsync()
+    {
+        var result = await SyllabusApiClient.CreateAsync(_model);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+
+    private async Task<bool> UpdateAsync(int id)
+    {
+        var dto = new UpdateSyllabusDto
+        {
+            AcademicYear = _model.AcademicYear,
+            EctsPoints = _model.EctsPoints,
+            LectureHours = _model.LectureHours,
+            ExerciseHours = _model.ExerciseHours,
+            LaboratoryHours = _model.LaboratoryHours,
+            CourseObjectives = _model.CourseObjectives,
+            AssessmentMethod = _model.AssessmentMethod,
+            Prerequisites = _model.Prerequisites,
+            CourseId = _model.CourseId,
+        };
+
+        var result = await SyllabusApiClient.UpdateAsync(id, dto);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
+}

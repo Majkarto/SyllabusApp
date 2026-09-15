@@ -1,0 +1,47 @@
+@inherits LayoutComponentBase
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="flex min-h-screen bg-slate-50">
+    <aside class="flex w-64 flex-shrink-0 flex-col bg-slate-900 text-slate-100">
+        <div class="px-6 py-5 text-lg font-semibold tracking-tight">SyllabusApp</div>
+
+        <nav class="flex-1 space-y-1 px-3">
+            <NavLink href="/" Match="NavLinkMatch.All" class="nav-link">Pulpit</NavLink>
+            <NavLink href="/locations" class="nav-link">Lokalizacje</NavLink>
+            <NavLink href="/faculties" class="nav-link">Wydziały</NavLink>
+            <NavLink href="/fields-of-study" class="nav-link">Kierunki studiów</NavLink>
+            <NavLink href="/courses" class="nav-link">Przedmioty</NavLink>
+            <NavLink href="/student-groups" class="nav-link">Grupy studenckie</NavLink>
+            <NavLink href="/syllabuses" class="nav-link">Sylabusy</NavLink>
+        </nav>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="border-t border-slate-700 px-4 py-4 text-sm">
+                    <div class="font-medium">
+                        @context.User.FindFirst("firstName")?.Value @context.User.FindFirst("lastName")?.Value
+                    </div>
+                    <div class="mt-0.5 text-xs text-slate-400">
+                        @string.Join(", ", context.User.FindAll(System.Security.Claims.ClaimTypes.Role).Select(c => c.Value))
+                    </div>
+                    <button type="button" class="mt-3 w-full rounded bg-slate-700 px-3 py-1.5 text-left text-slate-100 hover:bg-slate-600" @onclick="LogoutAsync">
+                        Wyloguj się
+                    </button>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </aside>
+
+    <main class="flex-1 overflow-y-auto p-8">
+        @Body
+    </main>
+</div>
+
+@code {
+    private async Task LogoutAsync()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/login");
+    }
+}

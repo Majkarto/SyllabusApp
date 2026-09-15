@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@layer components {
+  .nav-link {
+    @apply block rounded px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white;
+  }
+
+  .nav-link.active {
+    @apply bg-slate-800 text-white;
+  }
+
+  .btn-primary {
+    @apply rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply rounded border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50;
+  }
+
+  .btn-danger {
+    @apply rounded bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-700;
+  }
+
+  .form-label {
+    @apply mb-1 block text-sm font-medium text-slate-700;
+  }
+
+  .form-input {
+    @apply w-full rounded border border-slate-300 px-3 py-2 focus:border-blue-500 focus:outline-none;
+  }
+
+  .form-error {
+    @apply mt-1 block text-sm text-red-600;
+  }
+
+  .data-table {
+    @apply min-w-full divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white;
+  }
+
+  .data-table th {
+    @apply bg-slate-50 px-4 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-slate-500;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 text-sm text-slate-700;
+  }
+
+  .data-table tbody tr {
+    @apply border-t border-slate-100;
+  }
+}

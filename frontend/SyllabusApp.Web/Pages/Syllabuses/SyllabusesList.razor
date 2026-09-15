@@ -1,0 +1,101 @@
+@page "/syllabuses"
+@attribute [Authorize]
+@using SyllabusApp.Application.Dtos.Syllabuses
+@using SyllabusApp.Web.Services.ApiClients
+@inject SyllabusApiClient SyllabusApiClient
+@inject IJSRuntime JsRuntime
+
+<PageTitle>Sylabusy</PageTitle>
+
+<div class="flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-slate-800">Sylabusy</h1>
+    <AuthorizeView Roles="@($"{UserRoles.Admin},{UserRoles.Lecturer}")">
+        <Authorized>
+            <a href="/syllabuses/create" class="btn-primary">+ Dodaj sylabus</a>
+        </Authorized>
+    </AuthorizeView>
+</div>
+
+@if (_errorMessage != null)
+{
+    <div class="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+}
+
+@if (_syllabuses == null)
+{
+    <p class="mt-4 text-slate-500">Ładowanie...</p>
+}
+else if (_syllabuses.Count == 0)
+{
+    <p class="mt-4 text-slate-500">Brak sylabusów.</p>
+}
+else
+{
+    <div class="mt-4 overflow-x-auto">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Przedmiot</th>
+                    <th>Rok akademicki</th>
+                    <th>ECTS</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var syllabus in _syllabuses)
+                {
+                    <tr>
+                        <td>@syllabus.CourseName</td>
+                        <td>@syllabus.AcademicYear</td>
+                        <td>@syllabus.EctsPoints</td>
+                        <td>@syllabus.Status</td>
+                        <td class="text-right">
+                            <a href="/syllabuses/@syllabus.Id" class="text-blue-600 hover:underline">Szczegóły</a>
+                            <AuthorizeView Roles="@($"{UserRoles.Admin},{UserRoles.Lecturer}")">
+                                <Authorized>
+                                    <a href="/syllabuses/@syllabus.Id/edit" class="ml-3 text-blue-600 hover:underline">Edytuj</a>
+                                    <button type="button" class="ml-3 text-red-600 hover:underline" @onclick="() => DeleteAsync(syllabus)">Usuń</button>
+                                </Authorized>
+                            </AuthorizeView>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<SyllabusDto>? _syllabuses;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _syllabuses = await SyllabusApiClient.GetAllAsync();
+    }
+
+    private async Task DeleteAsync(SyllabusDto syllabus)
+    {
+        var confirmed = await JsRuntime.InvokeAsync<bool>("confirm", $"Usunąć sylabus przedmiotu „{syllabus.CourseName}” ({syllabus.AcademicYear})?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        var result = await SyllabusApiClient.DeleteAsync(syllabus.Id);
+        if (!result.Success)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        _errorMessage = null;
+        await LoadAsync();
+    }
+}
