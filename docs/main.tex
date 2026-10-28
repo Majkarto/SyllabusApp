@@ -116,7 +116,7 @@ Eksport do PDF i DOCX & Biblioteki QuestPDF i Open XML SDK, endpointy \texttt{/e
 
 \subsection{Wymagania niefunkcjonalne}
 
-Poza samymi funkcjami zależało mi na kilku ogólniejszych rzeczach. Do API można się dostać tylko z ważnym tokenem JWT, a uprawnienia zależą od roli (administrator, dziekan, wykładowca, student). Hasła nie są nigdzie zapisane wprost. Cały system (baza, API i frontend) startuje jednym poleceniem \texttt{docker compose up}, więc nie trzeba niczego instalować ręcznie.
+Poza samymi funkcjami zależało mi na kilku ogólniejszych rzeczach. Do API można się dostać tylko z ważnym tokenem JWT, a uprawnienia zależą od roli użytkownika. Hasła nie są nigdzie zapisane wprost. Baza, API i frontend startują jednym poleceniem \texttt{docker compose up}, więc nie trzeba niczego instalować ręcznie.
 
 Kod podzieliłem na warstwy według zasad czystej architektury \cite{martin_clean}. Każda encja jest obsługiwana według tego samego schematu: DTO, serwis, kontroler, klient API i strony. Dzięki temu łatwo się w nim odnaleźć. Stan aplikacji można sprawdzić pod adresem \texttt{/health}, a logikę biznesową sprawdzają testy uruchamiane przez \texttt{dotnet test}. Interfejs jest po polsku, a komunikaty o błędach mówią wprost, co trzeba poprawić.
 
@@ -167,7 +167,7 @@ Koszt licencji & konsorcjum & płatny & płatny & brak \\
 \end{tabularx}
 \end{table}
 
-Wszystkie trzy systemy są duże i obsługują całą uczelnię, a sylabus jest w nich tylko jednym z wielu modułów. SyllabusApp robi wyłącznie sylabusy. Przez to jest dużo mniejszy i łatwiejszy do uruchomienia (wystarczy jeden plik \texttt{docker-compose.yml}), a mimo to ma najważniejsze funkcje: wersjonowanie, siatkę przedmiotów, walidację i eksport.
+Wszystkie trzy systemy są duże i obsługują całą uczelnię, a sylabus jest w nich tylko jednym z wielu modułów. SyllabusApp robi wyłącznie sylabusy. Przez to jest dużo mniejszy i łatwiejszy do uruchomienia, a mimo to ma najważniejsze funkcje: wersjonowanie, siatkę przedmiotów, walidację i eksport.
 
 \section{Opis architektury}
 
@@ -235,7 +235,7 @@ Jedną z ważniejszych decyzji było to, żeby projekt \texttt{Application} był
 
 \subsection{Komunikacja między komponentami}
 
-Frontend rozmawia z backendem tylko przez REST API. Oprócz logowania i rejestracji każde zapytanie ma nagłówek \texttt{Authorization: Bearer <token>}. Token JWT \cite{rfc7519} wydaje endpoint \texttt{/auth/login}. Przeglądarka trzyma go w \texttt{localStorage}, a \texttt{AuthorizationMessageHandler} sam dokleja go do zapytań. Wartości enumeracji przesyłam jako tekst (np. \texttt{"Draft"}), bo łatwiej się wtedy czyta odpowiedzi API. Dokumentacja API generuje się automatycznie w formacie OpenAPI i można ją przeglądać w interfejsie Scalar \cite{scalar} (rys. \ref{fig:scalar}).
+Frontend rozmawia z backendem tylko przez REST API. Oprócz logowania i rejestracji każde zapytanie ma nagłówek \texttt{Authorization: Bearer <token>}. Token JWT \cite{rfc7519} wydaje endpoint \texttt{/auth/login}. Przeglądarka trzyma go w \texttt{localStorage}, a \texttt{AuthorizationMessageHandler} sam dokleja go do zapytań. Wartości enumeracji przesyłam jako tekst, bo łatwiej się wtedy czyta odpowiedzi API. Dokumentacja API generuje się automatycznie w formacie OpenAPI i można ją przeglądać w interfejsie Scalar \cite{scalar} (rys. \ref{fig:scalar}).
 
 \begin{table}[H]
 \centering
@@ -265,7 +265,7 @@ GET & \texttt{/health} & Stan aplikacji i połączenia z bazą \\
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.9\textwidth]{scalar-api.png}
-\caption{Interaktywna dokumentacja API (Scalar)}
+\caption{Interaktywna dokumentacja API w Scalarze}
 \label{fig:scalar}
 \end{figure}
 
@@ -297,7 +297,7 @@ Monitoring & ASP.NET Core Health Checks \cite{ms_healthchecks}, healthchecki Doc
 
 \subsection{Frontend}
 
-Frontend to aplikacja jednostronicowa (SPA) napisana w Blazor WebAssembly \cite{ms_blazor}. Wybrałem Blazora, bo pozwala pisać interfejs w C\#, tym samym języku co backend, i korzystać z tych samych klas DTO. Wygląd oparłem na Tailwind CSS \cite{tailwind}. Zdefiniowałem kilka własnych klas (\texttt{btn-primary}, \texttt{form-input}, \texttt{data-table}), żeby wszystkie strony wyglądały tak samo.
+Frontend to aplikacja jednostronicowa napisana w Blazor WebAssembly \cite{ms_blazor}. Wybrałem Blazora, bo pozwala pisać interfejs w C\#, tym samym języku co backend, i korzystać z tych samych klas DTO. Wygląd oparłem na Tailwind CSS \cite{tailwind}. Zdefiniowałem kilka własnych klas, np. \texttt{btn-primary} i \texttt{data-table}, żeby wszystkie strony wyglądały tak samo.
 
 Kod frontendu jest podzielony na kilka folderów:
 \begin{itemize}
@@ -307,7 +307,7 @@ Kod frontendu jest podzielony na kilka folderów:
   \item \texttt{Layout/} to układ strony z menu po lewej i informacją o zalogowanym użytkowniku.
 \end{itemize}
 
-To, co widzi użytkownik, zależy od jego roli. Przyciski dodawania, edycji i usuwania pokazują się tylko administratorom i wykładowcom (komponent \texttt{AuthorizeView}). Strony, które wymagają logowania, mają atrybut \texttt{[Authorize]}. Ekran logowania widać na rysunku \ref{fig:logowanie}.
+To, co widzi użytkownik, zależy od jego roli. Przyciski dodawania, edycji i usuwania pokazują się tylko administratorom i wykładowcom, czego pilnuje komponent \texttt{AuthorizeView}. Strony, które wymagają logowania, mają atrybut \texttt{[Authorize]}. Ekran logowania widać na rysunku \ref{fig:logowanie}.
 
 \begin{figure}[H]
 \centering
@@ -328,7 +328,7 @@ Nad listą sylabusów (rys. \ref{fig:lista}) jest panel wyszukiwania. Można wpi
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.95\textwidth]{filtrowanie.png}
-\caption{Wyszukiwanie i filtrowanie sylabusów (tekst ,,program'', ośrodek Kampus Łódź)}
+\caption{Wyszukiwanie sylabusów po tekście ,,program'' w ośrodku Kampus Łódź}
 \label{fig:filtrowanie}
 \end{figure}
 
@@ -361,7 +361,7 @@ Siatka przedmiotów (rys. \ref{fig:siatka}) pokazuje przedmioty wybranego kierun
 
 \subsection{Backend}
 
-Backend to aplikacja ASP.NET Core Web API \cite{ms_aspnetcore}. Wszystkie zasoby obsługuję według jednego schematu. Kontroler przyjmuje i zwraca DTO, a samą pracę zleca serwisowi. Interfejs serwisu leży w \texttt{Application}, a implementacja w \texttt{Infrastructure} i to ona korzysta z \texttt{SyllabusDbContext}. Serwisy są rejestrowane w kontenerze zależności jako \textit{scoped}. Kiedy operacja może się nie udać z powodów biznesowych (np. nie ma takiego przedmiotu), serwis nie rzuca wyjątku, tylko zwraca obiekt wyniku, np. \texttt{SyllabusResult}. Kontroler zamienia go na właściwy kod HTTP: 200, 201, 400 albo 404.
+Backend to aplikacja ASP.NET Core Web API \cite{ms_aspnetcore}. Wszystkie zasoby obsługuję według jednego schematu. Kontroler przyjmuje i zwraca DTO, a samą pracę zleca serwisowi. Interfejs serwisu leży w \texttt{Application}, a implementacja w \texttt{Infrastructure} i to ona korzysta z \texttt{SyllabusDbContext}. Serwisy są rejestrowane w kontenerze zależności jako \textit{scoped}. Kiedy operacja może się nie udać, bo np. nie ma takiego przedmiotu, serwis nie rzuca wyjątku, tylko zwraca obiekt wyniku, np. \texttt{SyllabusResult}. Kontroler zamienia go na właściwy kod HTTP: 200, 201, 400 albo 404.
 
 \subsubsection{Uwierzytelnianie i autoryzacja}
 
@@ -372,15 +372,15 @@ Użytkowników i role obsługuje ASP.NET Core Identity \cite{ms_identity}. Hasł
 
 Przy wymaganiu logowania kontem uczelnianym trzeba było najpierw sprawdzić, jakie są możliwości. Wziąłem pod uwagę dwie.
 
-Pierwsza to OpenID Connect z Microsoft Entra ID \cite{oidc,ms_entra}. Większość polskich uczelni, w tym SAN, daje studentom i pracownikom konta Microsoft 365 w swojej domenie. Aplikację rejestruje się w Entra ID, a logowanie przebiega według schematu \textit{Authorization Code} z PKCE. We frontendzie można użyć biblioteki MSAL dla Blazor WebAssembly, a backend sprawdza token wydany przez Entra ID (\texttt{AddMicrosoftIdentityWebApi}). Żeby wpuszczać tylko osoby z jednej uczelni, ustawia się identyfikator dzierżawy (\textit{tenant ID}).
+Pierwsza to OpenID Connect z Microsoft Entra ID \cite{oidc,ms_entra}. Większość polskich uczelni, w tym SAN, daje studentom i pracownikom konta Microsoft 365 w swojej domenie. Aplikację rejestruje się w Entra ID, a logowanie przebiega według schematu \textit{Authorization Code} z PKCE. We frontendzie można użyć biblioteki MSAL dla Blazor WebAssembly, a backend sprawdza token wydany przez Entra ID. Żeby wpuszczać tylko osoby z jednej uczelni, ustawia się identyfikator dzierżawy, czyli \textit{tenant ID}.
 
 Druga możliwość to USOS API \cite{usos_api}. Uczelnie, które korzystają z USOS-a, udostępniają API z autoryzacją OAuth 1.0a. Można przez nie potwierdzić tożsamość studenta i pobrać np. jego numer albumu i kierunek. Trzeba jednak dostać klucz aplikacji od administratora USOS-a na danej uczelni.
 
-Lepszym wyborem jest moim zdaniem Entra ID. Opiera się na otwartych standardach \cite{rfc6749,oidc}, .NET dobrze go obsługuje i działa także na uczelniach bez USOS-a. W obecnej architekturze wystarczyłoby dodać w API drugi sposób uwierzytelniania i endpoint, który po sprawdzeniu tokenu z Entra ID znajdzie (albo utworzy) użytkownika po adresie e-mail i wyda mu zwykły token JWT aplikacji. Role, autoryzacja i frontend zostałyby bez zmian. Tej integracji nie uruchomiłem, bo rejestracja aplikacji w dzierżawie uczelni wymaga uprawnień administratora IT.
+Lepszym wyborem jest moim zdaniem Entra ID. Opiera się na otwartych standardach \cite{rfc6749,oidc}, .NET dobrze go obsługuje i działa także na uczelniach bez USOS-a. W obecnej architekturze wystarczyłoby dodać w API drugi sposób uwierzytelniania i endpoint, który po sprawdzeniu tokenu z Entra ID znajdzie albo utworzy użytkownika po adresie e-mail i wyda mu zwykły token JWT aplikacji. Role, autoryzacja i frontend zostałyby bez zmian. Tej integracji nie uruchomiłem, bo rejestracja aplikacji w dzierżawie uczelni wymaga uprawnień administratora IT.
 
 \subsubsection{Wersjonowanie i historia zmian}
 
-Za każdym razem, gdy sylabus jest zapisywany, powstaje nowy rekord \texttt{SyllabusVersion}. Przy tworzeniu sylabusa jest to wersja 1 z opisem ,,Utworzenie sylabusa'', a każda kolejna edycja dodaje wersję z numerem o jeden większym. W wersji zapisuję najważniejsze pola (rok, ECTS, godziny, cele, ocenianie, wymagania), autora, datę, opis zmian i pełną kopię sylabusa w JSON (listing \ref{lst:wersje}). Unikalny indeks na parze (\texttt{SyllabusId}, \texttt{VersionNumber}) nie pozwala, żeby dwie wersje miały ten sam numer.
+Za każdym razem, gdy sylabus jest zapisywany, powstaje nowy rekord \texttt{SyllabusVersion}. Przy tworzeniu sylabusa jest to wersja 1 z opisem ,,Utworzenie sylabusa'', a każda kolejna edycja dodaje wersję z numerem o jeden większym. W wersji zapisuję najważniejsze pola sylabusa, autora, datę, opis zmian i pełną kopię sylabusa w JSON (listing \ref{lst:wersje}). Unikalny indeks na identyfikatorze sylabusa i numerze wersji nie pozwala, żeby dwie wersje miały ten sam numer.
 
 \begin{lstlisting}[language={[Sharp]C}, caption={Zapis nowej wersji przy edycji sylabusa (fragment \texttt{SyllabusService})}, label={lst:wersje}]
 syllabus.ApplyUpdate(dto);
@@ -397,7 +397,7 @@ await AddVersionAsync(syllabus, lastVersion + 1, description, userId);
 
 \subsubsection{Walidacja danych}
 
-Dane są sprawdzane na dwa sposoby. Atrybuty \texttt{DataAnnotations} pilnują pól wymaganych, długości tekstu i formatu roku akademickiego (\texttt{RRRR/RRRR}). Reguły dotyczące godzin wydzieliłem do klasy \texttt{SyllabusRules} (listing \ref{lst:reguly}). Zgodnie z zasadami ECTS \cite{ects_guide} przyjąłem, że jeden punkt to 25--30 godzin pracy studenta. Z tego wynikają następujące reguły:
+Dane są sprawdzane na dwa sposoby. Atrybuty \texttt{DataAnnotations} pilnują pól wymaganych, długości tekstu i formatu roku akademickiego, np. 2026/2027. Reguły dotyczące godzin wydzieliłem do klasy \texttt{SyllabusRules} (listing \ref{lst:reguly}). Zgodnie z zasadami ECTS \cite{ects_guide} przyjąłem, że jeden punkt to 25--30 godzin pracy studenta. Z tego wynikają następujące reguły:
 \begin{itemize}
   \item ECTS musi być w zakresie od 1 do 30,
   \item godziny nie mogą być ujemne, a sylabus musi mieć przynajmniej jedną godzinę zajęć,
@@ -464,13 +464,13 @@ Na bazę danych wybrałem PostgreSQL 16 \cite{postgresql}. Jest darmowy, sprawdz
 \end{tabularx}
 \end{table}
 
-Dzięki układowi \texttt{Location} $\rightarrow$ \texttt{Faculty} $\rightarrow$ \texttt{FieldOfStudy} $\rightarrow$ \texttt{Course} $\rightarrow$ \texttt{Syllabus} ten sam przedmiot może mieć osobne sylabusy w różnych ośrodkach. Pole \texttt{AcademicYear} pozwala dodatkowo trzymać osobne sylabusy dla kolejnych roczników. W konfiguracji modelu ustawiłem między innymi unikalne kody wydziałów i kierunków oraz kaskadowe usuwanie wersji razem z sylabusem. Zablokowałem też usunięcie użytkownika, który jest prowadzącym albo koordynatorem jakiegoś sylabusa (\texttt{DeleteBehavior.Restrict}).
+Dzięki układowi \texttt{Location} $\rightarrow$ \texttt{Faculty} $\rightarrow$ \texttt{FieldOfStudy} $\rightarrow$ \texttt{Course} $\rightarrow$ \texttt{Syllabus} ten sam przedmiot może mieć osobne sylabusy w różnych ośrodkach. Pole \texttt{AcademicYear} pozwala dodatkowo trzymać osobne sylabusy dla kolejnych roczników. W konfiguracji modelu ustawiłem między innymi unikalne kody wydziałów i kierunków oraz kaskadowe usuwanie wersji razem z sylabusem. Zablokowałem też usunięcie użytkownika, który jest prowadzącym albo koordynatorem jakiegoś sylabusa.
 
 \subsection{Docker}
 
 Każda część systemu ma własny obraz. Obraz API budowany jest w dwóch etapach. Najpierw \texttt{dotnet/sdk:10.0} kompiluje i publikuje aplikację, a potem gotowe pliki trafiają do dużo mniejszego obrazu \texttt{dotnet/aspnet:10.0}. Przy budowaniu frontendu najpierw powstaje arkusz Tailwind CSS, potem publikowana jest aplikacja Blazor, a gotowe pliki serwuje \texttt{nginx:alpine}. W konfiguracji nginx jest reguła \texttt{try\_files}, która każdy nieznany adres kieruje do \texttt{index.html}. Bez niej odświeżenie np. strony \texttt{/syllabuses} kończyłoby się błędem 404. Baza korzysta z oficjalnego obrazu \texttt{postgres:16-alpine}, a dane zapisuje w wolumenie.
 
-Wszystkie kontenery opisuje plik \texttt{docker-compose.yml} (listing \ref{lst:compose}). Ustawienia API, czyli połączenie z bazą, klucz JWT, konto administratora i dozwolone adresy CORS, przekazuję przez zmienne środowiskowe. ASP.NET Core traktuje je jako ważniejsze od wartości z \texttt{appsettings.json}. API rusza dopiero wtedy, gdy baza zgłosi, że jest gotowa (\texttt{condition: service\_healthy}).
+Wszystkie kontenery opisuje plik \texttt{docker-compose.yml} (listing \ref{lst:compose}). Ustawienia API, czyli połączenie z bazą, klucz JWT, konto administratora i dozwolone adresy CORS, przekazuję przez zmienne środowiskowe. ASP.NET Core traktuje je jako ważniejsze od wartości z \texttt{appsettings.json}. API rusza dopiero wtedy, gdy baza zgłosi, że jest gotowa.
 
 \begin{lstlisting}[caption={Fragment pliku \texttt{docker-compose.yml}}, label={lst:compose}]
   api:
@@ -495,7 +495,7 @@ Wszystkie kontenery opisuje plik \texttt{docker-compose.yml} (listing \ref{lst:c
 
 \subsection{Testy}
 
-Testy napisałem w xUnit \cite{xunit}. Serwisy testuję na bazie EF Core InMemory. Każdy test dostaje nową, pustą bazę w pamięci o losowej nazwie (\texttt{Guid}), więc testy nie wpływają na siebie nawzajem i nie potrzebują działającego PostgreSQL-a. W projekcie są 22 testy w trzech klasach (tab. \ref{tab:testy}).
+Testy napisałem w xUnit \cite{xunit}. Serwisy testuję na bazie EF Core InMemory. Każdy test dostaje nową, pustą bazę w pamięci o losowej nazwie, więc testy nie wpływają na siebie nawzajem i nie potrzebują działającego PostgreSQL-a. W projekcie są 22 testy w trzech klasach (tab. \ref{tab:testy}).
 
 \begin{table}[H]
 \centering
@@ -540,7 +540,7 @@ public async Task UpdateAsync_AddsNewVersion_AndKeepsOldValuesInHistory()
 
 \subsection{Monitoring}
 
-Do monitorowania użyłem mechanizmu \textit{health checks}, który jest wbudowany w ASP.NET Core \cite{ms_healthchecks}. W API dodałem sprawdzenie \texttt{AddDbContextCheck} dla \texttt{SyllabusDbContext}. Przy każdym wejściu na \texttt{/health} aplikacja próbuje połączyć się z bazą i odpowiada \texttt{Healthy} (kod 200) albo \texttt{Unhealthy} (kod 503).
+Do monitorowania użyłem mechanizmu \textit{health checks}, który jest wbudowany w ASP.NET Core \cite{ms_healthchecks}. W API dodałem sprawdzenie \texttt{AddDbContextCheck} dla \texttt{SyllabusDbContext}. Przy każdym wejściu na \texttt{/health} aplikacja próbuje połączyć się z bazą i odpowiada \texttt{Healthy} z kodem 200 albo \texttt{Unhealthy} z kodem 503.
 
 \begin{lstlisting}[language={[Sharp]C}, caption={Konfiguracja health checks w \texttt{Program.cs}}, label={lst:health}]
 builder.Services.AddHealthChecks()
@@ -548,7 +548,7 @@ builder.Services.AddHealthChecks()
 app.MapHealthChecks("/health");
 \end{lstlisting}
 
-Z tego adresu korzysta Docker. Co 15 sekund sprawdza \texttt{/health} kontenera \texttt{api}, a bazę sprawdza poleceniem \texttt{pg\_isready}. Stan wszystkich usług (\texttt{healthy} albo \texttt{unhealthy}) pokazuje polecenie \texttt{docker compose ps}. Jeśli któryś kontener padnie, Docker sam go uruchomi ponownie (\texttt{restart: unless-stopped}). Do tego aplikacja zapisuje logi, m.in. zapytania SQL, błędy i zakładanie kont. Można je podejrzeć przez \texttt{docker compose logs api}.
+Z tego adresu korzysta Docker. Co 15 sekund sprawdza \texttt{/health} kontenera \texttt{api}, a bazę sprawdza poleceniem \texttt{pg\_isready}. Polecenie \texttt{docker compose ps} pokazuje przy każdej usłudze \texttt{healthy} albo \texttt{unhealthy}. Jeśli któryś kontener padnie, Docker sam go uruchomi ponownie. Do tego aplikacja zapisuje logi, m.in. zapytania SQL, błędy i zakładanie kont. Można je podejrzeć przez \texttt{docker compose logs api}.
 
 \section{Podsumowanie i wnioski}
 
@@ -568,10 +568,10 @@ Przy budowaniu obrazu frontendu okazało się, że brakuje arkusza Tailwind CSS,
 
 \begin{itemize}
   \item wdrożyć logowanie kontem uczelnianym przez Microsoft Entra ID, tak jak opisałem w researchu,
-  \item dodać obieg akceptacji sylabusa (wykładowca, potem dziekan), do którego jest już przygotowana encja \texttt{SyllabusApproval} i statusy,
+  \item dodać obieg akceptacji sylabusa przez dziekana, do którego jest już przygotowana encja \texttt{SyllabusApproval} i statusy,
   \item umożliwić porównanie dwóch wersji sylabusa i przywrócenie starszej,
   \item zrobić publiczny katalog opublikowanych sylabusów, dostępny bez logowania,
-  \item rozbudować monitoring o metryki (Prometheus, Grafana) i zbieranie logów w jednym miejscu,
+  \item rozbudować monitoring o metryki w Prometheusie i Grafanie oraz zbieranie logów w jednym miejscu,
   \item dopisać testy integracyjne API i testy interfejsu,
   \item powiązać efekty uczenia się przedmiotu z efektami kierunkowymi i Polską Ramą Kwalifikacji.
 \end{itemize}
