@@ -21,3 +21,8 @@ Stan kontenerów (`healthy`/`unhealthy`): `docker compose ps`.
 ```
 dotnet test
 ```
+
+## Dokumentacja
+
+Sprawozdanie w LaTeX: `docs/main.tex` (gotowy PDF: `docs/main.pdf`).
+Kompilacja (wymaga biber): `latexmk -pdf main.tex` w katalogu `docs/`.
