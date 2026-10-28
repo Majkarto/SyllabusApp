@@ -15,5 +15,6 @@ public class SyllabusVersionDto
     public string Prerequisites { get; set; } = string.Empty;
     public string SnapshotJson { get; set; } = string.Empty;
     public int SyllabusId { get; set; }
-    public string SyllabusAcademicYear { get; set; } = string.Empty;
-}   
+    public DateTime CreatedAt { get; set; }
+    public string? CreatedByName { get; set; }
+}

@@ -1,8 +1,13 @@
 @page "/syllabuses"
 @attribute [Authorize]
 @using SyllabusApp.Application.Dtos.Syllabuses
+@using SyllabusApp.Application.Dtos.Locations
+@using SyllabusApp.Application.Dtos.FieldOfStudies
+@using SyllabusApp.Domain.Entities
 @using SyllabusApp.Web.Services.ApiClients
 @inject SyllabusApiClient SyllabusApiClient
+@inject LocationApiClient LocationApiClient
+@inject FieldOfStudyApiClient FieldOfStudyApiClient
 @inject IJSRuntime JsRuntime
 
 <PageTitle>Sylabusy</PageTitle>
@@ -16,6 +21,56 @@
     </AuthorizeView>
 </div>
 
+<!-- Wyszukiwanie i filtry -->
+<form class="mt-4 grid grid-cols-1 gap-3 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-6" @onsubmit="SearchAsync">
+    <div class="md:col-span-2">
+        <label class="form-label">Szukaj</label>
+        <input class="form-input" placeholder="nazwa, kod, opis..." @bind="_filter.Search" />
+    </div>
+    <div>
+        <label class="form-label">Ośrodek</label>
+        <select class="form-input" @bind="_filter.LocationId">
+            <option value="">wszystkie</option>
+            @foreach (var location in _locations)
+            {
+                <option value="@location.Id">@location.Name</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label class="form-label">Kierunek</label>
+        <select class="form-input" @bind="_filter.FieldOfStudyId">
+            <option value="">wszystkie</option>
+            @foreach (var field in _fieldsOfStudy)
+            {
+                <option value="@field.Id">@field.Name</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label class="form-label">Rok akademicki</label>
+        <input class="form-input" placeholder="np. 2026/2027" @bind="_filter.AcademicYear" />
+    </div>
+    <div>
+        <label class="form-label">Status</label>
+        <select class="form-input" @bind="_filter.Status">
+            <option value="">wszystkie</option>
+            @foreach (var status in Enum.GetValues<SyllabusStatus>())
+            {
+                <option value="@status">@Labels.Status(status)</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label class="form-label">Semestr</label>
+        <input type="number" min="1" class="form-input" @bind="_filter.Semester" />
+    </div>
+    <div class="flex items-end gap-2 md:col-span-5">
+        <button type="submit" class="btn-primary">Szukaj</button>
+        <button type="button" class="btn-secondary" @onclick="ClearAsync">Wyczyść</button>
+    </div>
+</form>
+
 @if (_errorMessage != null)
 {
     <div class="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
@@ -27,18 +82,24 @@
 }
 else if (_syllabuses.Count == 0)
 {
-    <p class="mt-4 text-slate-500">Brak sylabusów.</p>
+    <p class="mt-4 text-slate-500">Brak sylabusów spełniających kryteria.</p>
 }
 else
 {
-    <div class="mt-4 overflow-x-auto">
+    <p class="mt-4 text-sm text-slate-500">Znaleziono: @_syllabuses.Count</p>
+    <div class="mt-2 overflow-x-auto">
         <table class="data-table">
             <thead>
                 <tr>
+                    <th>Kod</th>
                     <th>Przedmiot</th>
+                    <th>Kierunek</th>
+                    <th>Ośrodek</th>
+                    <th>Sem.</th>
                     <th>Rok akademicki</th>
                     <th>ECTS</th>
                     <th>Status</th>
+                    <th>Wersja</th>
                     <th></th>
                 </tr>
             </thead>
@@ -46,11 +107,16 @@ else
                 @foreach (var syllabus in _syllabuses)
                 {
                     <tr>
+                        <td>@syllabus.CourseCode</td>
                         <td>@syllabus.CourseName</td>
+                        <td>@syllabus.FieldOfStudyName</td>
+                        <td>@syllabus.LocationName</td>
+                        <td>@syllabus.Semester</td>
                         <td>@syllabus.AcademicYear</td>
                         <td>@syllabus.EctsPoints</td>
-                        <td>@syllabus.Status</td>
-                        <td class="text-right">
+                        <td>@Labels.Status(syllabus.Status)</td>
+                        <td>v@(syllabus.CurrentVersion)</td>
+                        <td class="whitespace-nowrap text-right">
                             <a href="/syllabuses/@syllabus.Id" class="text-blue-600 hover:underline">Szczegóły</a>
                             <AuthorizeView Roles="@($"{UserRoles.Admin},{UserRoles.Lecturer}")">
                                 <Authorized>
@@ -68,16 +134,33 @@ else
 
 @code {
     private List<SyllabusDto>? _syllabuses;
+    private List<LocationDto> _locations = [];
+    private List<FieldOfStudyDto> _fieldsOfStudy = [];
+    private SyllabusFilterDto _filter = new();
     private string? _errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
+        _locations = await LocationApiClient.GetAllAsync();
+        _fieldsOfStudy = await FieldOfStudyApiClient.GetAllAsync();
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
-        _syllabuses = await SyllabusApiClient.GetAllAsync();
+        _syllabuses = await SyllabusApiClient.GetAllAsync(_filter);
+    }
+
+    private async Task SearchAsync()
+    {
+        _syllabuses = null;
+        await LoadAsync();
+    }
+
+    private async Task ClearAsync()
+    {
+        _filter = new SyllabusFilterDto();
+        await SearchAsync();
     }
 
     private async Task DeleteAsync(SyllabusDto syllabus)

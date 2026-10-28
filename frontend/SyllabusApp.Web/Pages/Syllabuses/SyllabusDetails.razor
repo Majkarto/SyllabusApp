@@ -4,6 +4,8 @@
 @using SyllabusApp.Application.Dtos.LearningOutcomes
 @using SyllabusApp.Application.Dtos.Literatures
 @using SyllabusApp.Application.Dtos.WorkloadItems
+@using SyllabusApp.Application.Dtos.SyllabusVersions
+@using SyllabusApp.Application.Validation
 @using SyllabusApp.Domain.Entities
 @using SyllabusApp.Web.Services.ApiClients
 @inject SyllabusApiClient SyllabusApiClient
@@ -22,19 +24,29 @@ else
 {
     <div class="flex items-center justify-between">
         <h1 class="text-2xl font-semibold text-slate-800">@_syllabus.CourseName - @_syllabus.AcademicYear</h1>
-        <AuthorizeView Roles="@($"{UserRoles.Admin},{UserRoles.Lecturer}")">
-            <Authorized>
-                <a href="/syllabuses/@Id/edit" class="btn-secondary">Edytuj dane sylabusa</a>
-            </Authorized>
-        </AuthorizeView>
+        <div class="flex gap-2">
+            <button type="button" class="btn-secondary" @onclick='() => ExportAsync("pdf")'>Eksport PDF</button>
+            <button type="button" class="btn-secondary" @onclick='() => ExportAsync("docx")'>Eksport DOCX</button>
+            <AuthorizeView Roles="@($"{UserRoles.Admin},{UserRoles.Lecturer}")">
+                <Authorized>
+                    <a href="/syllabuses/@Id/edit" class="btn-primary">Edytuj dane sylabusa</a>
+                </Authorized>
+            </AuthorizeView>
+        </div>
     </div>
 
     <dl class="mt-6 grid grid-cols-2 gap-x-8 gap-y-3 rounded-lg border border-slate-200 bg-white p-6 text-sm md:grid-cols-4">
-        <div><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-800">@_syllabus.Status</dd></div>
+        <div><dt class="text-slate-500">Kod przedmiotu</dt><dd class="font-medium text-slate-800">@_syllabus.CourseCode</dd></div>
+        <div><dt class="text-slate-500">Kierunek</dt><dd class="font-medium text-slate-800">@_syllabus.FieldOfStudyName</dd></div>
+        <div><dt class="text-slate-500">Ośrodek</dt><dd class="font-medium text-slate-800">@_syllabus.LocationName</dd></div>
+        <div><dt class="text-slate-500">Semestr</dt><dd class="font-medium text-slate-800">@_syllabus.Semester</dd></div>
+        <div><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-800">@Labels.Status(_syllabus.Status)</dd></div>
+        <div><dt class="text-slate-500">Wersja</dt><dd class="font-medium text-slate-800">v@(_syllabus.CurrentVersion)</dd></div>
         <div><dt class="text-slate-500">ECTS</dt><dd class="font-medium text-slate-800">@_syllabus.EctsPoints</dd></div>
         <div><dt class="text-slate-500">Wykłady (h)</dt><dd class="font-medium text-slate-800">@_syllabus.LectureHours</dd></div>
         <div><dt class="text-slate-500">Ćwiczenia (h)</dt><dd class="font-medium text-slate-800">@_syllabus.ExerciseHours</dd></div>
         <div><dt class="text-slate-500">Laboratoria (h)</dt><dd class="font-medium text-slate-800">@_syllabus.LaboratoryHours</dd></div>
+        <div class="col-span-2 md:col-span-4"><dt class="text-slate-500">Opis przedmiotu</dt><dd class="text-slate-800">@(string.IsNullOrWhiteSpace(_syllabus.Description) ? "-" : _syllabus.Description)</dd></div>
         <div class="col-span-2 md:col-span-4"><dt class="text-slate-500">Cel zajęć</dt><dd class="text-slate-800">@_syllabus.CourseObjectives</dd></div>
         <div class="col-span-2 md:col-span-4"><dt class="text-slate-500">Metoda oceny</dt><dd class="text-slate-800">@_syllabus.AssessmentMethod</dd></div>
         <div class="col-span-2 md:col-span-4"><dt class="text-slate-500">Warunki wstępne</dt><dd class="text-slate-800">@_syllabus.Prerequisites</dd></div>
@@ -232,6 +244,15 @@ else
             </EditForm>
         }
 
+        @if (_workloadItems.Count > 0)
+        {
+            var totalHours = _workloadItems.Sum(w => w.Hours);
+            var warning = SyllabusRules.CheckWorkload(_syllabus.EctsPoints, totalHours);
+            <div class="mt-3 rounded px-3 py-2 text-sm @(warning == null ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-800")">
+                @(warning ?? $"Łączny nakład pracy: {totalHours} h - zgodny z {_syllabus.EctsPoints} ECTS.")
+            </div>
+        }
+
         @if (_workloadItems.Count == 0)
         {
             <p class="mt-3 text-sm text-slate-500">Brak pozycji nakładu pracy.</p>
@@ -262,6 +283,37 @@ else
             </table>
         }
     </section>
+
+    <!-- Historia wersji -->
+    <section class="mt-8">
+        <h2 class="text-lg font-semibold text-slate-800">Historia zmian</h2>
+        @if (_versions.Count == 0)
+        {
+            <p class="mt-3 text-sm text-slate-500">Brak zapisanych wersji.</p>
+        }
+        else
+        {
+            <table class="data-table mt-3">
+                <thead>
+                    <tr><th>Wersja</th><th>Data</th><th>Autor</th><th>Opis zmian</th><th>Rok</th><th>ECTS</th><th>W/Ć/L (h)</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var version in _versions)
+                    {
+                        <tr>
+                            <td>v@(version.VersionNumber)</td>
+                            <td>@version.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@(version.CreatedByName ?? "-")</td>
+                            <td>@version.ChangeDescription</td>
+                            <td>@version.AcademicYear</td>
+                            <td>@version.EctsPoints</td>
+                            <td>@version.LectureHours / @version.ExerciseHours / @version.LaboratoryHours</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </section>
 }
 
 @code {
@@ -272,6 +324,7 @@ else
     private List<LearningOutcomeDto> _learningOutcomes = [];
     private List<LiteratureDto> _literature = [];
     private List<WorkloadItemDto> _workloadItems = [];
+    private List<SyllabusVersionDto> _versions = [];
     private string? _errorMessage;
 
     private bool _showLearningOutcomeForm;
@@ -302,6 +355,24 @@ else
 
         var allWorkloadItems = await WorkloadItemApiClient.GetAllAsync();
         _workloadItems = allWorkloadItems.Where(w => w.SyllabusId == Id).ToList();
+
+        _versions = await SyllabusApiClient.GetVersionsAsync(Id);
+    }
+
+    private async Task ExportAsync(string format)
+    {
+        var result = await SyllabusApiClient.ExportAsync(Id, format);
+        if (!result.Success)
+        {
+            _errorMessage = result.ErrorMessage;
+            return;
+        }
+
+        var contentType = format == "pdf"
+            ? "application/pdf"
+            : "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        var fileName = $"sylabus-{_syllabus!.CourseCode}-{_syllabus.AcademicYear.Replace('/', '-')}.{format}";
+        await JsRuntime.InvokeVoidAsync("downloadFile", fileName, contentType, Convert.ToBase64String(result.Data!));
     }
 
     private async Task AddLearningOutcomeAsync()

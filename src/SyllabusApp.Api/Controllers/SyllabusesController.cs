@@ -13,16 +13,63 @@ namespace SyllabusApp.Api.Controllers;
 public class SyllabusesController : ControllerBase
 {
     private readonly ISyllabusService _syllabusService;
+    private readonly ISyllabusExportService _exportService;
 
-    public SyllabusesController(ISyllabusService syllabusService)
+    public SyllabusesController(ISyllabusService syllabusService, ISyllabusExportService exportService)
     {
         _syllabusService = syllabusService;
+        _exportService = exportService;
     }
 
-    [HttpGet]
-    public async Task<IActionResult> GetAll()
+    /// <summary>Historia wersji sylabusa (od najnowszej).</summary>
+    [HttpGet("{id:int}/versions")]
+    public async Task<IActionResult> GetVersions(int id)
     {
-        var syllabuses = await _syllabusService.GetAllAsync();
+        var versions = await _syllabusService.GetVersionsAsync(id);
+        if (versions == null)
+        {
+            return NotFound(new { message = $"Nie znaleziono sylabusa o id {id}." });
+        }
+        return Ok(versions);
+    }
+
+    /// <summary>Siatka przedmiotow kierunku: semestry, godziny i ECTS.</summary>
+    [HttpGet("curriculum-grid")]
+    public async Task<IActionResult> GetCurriculumGrid([FromQuery] int fieldOfStudyId, [FromQuery] string? academicYear)
+    {
+        var grid = await _syllabusService.GetCurriculumGridAsync(fieldOfStudyId, academicYear);
+        if (grid == null)
+        {
+            return NotFound(new { message = $"Nie znaleziono kierunku o id {fieldOfStudyId}." });
+        }
+        return Ok(grid);
+    }
+
+    /// <summary>Eksport sylabusa do pliku PDF.</summary>
+    [HttpGet("{id:int}/export/pdf")]
+    public async Task<IActionResult> ExportPdf(int id)
+    {
+        var bytes = await _exportService.ExportPdfAsync(id);
+        return bytes == null
+            ? NotFound(new { message = $"Nie znaleziono sylabusa o id {id}." })
+            : File(bytes, "application/pdf", $"sylabus-{id}.pdf");
+    }
+
+    /// <summary>Eksport sylabusa do pliku DOCX (Word).</summary>
+    [HttpGet("{id:int}/export/docx")]
+    public async Task<IActionResult> ExportDocx(int id)
+    {
+        var bytes = await _exportService.ExportDocxAsync(id);
+        return bytes == null
+            ? NotFound(new { message = $"Nie znaleziono sylabusa o id {id}." })
+            : File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"sylabus-{id}.docx");
+    }
+
+    /// <summary>Lista sylabusow z opcjonalnym wyszukiwaniem i filtrami (query string).</summary>
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] SyllabusFilterDto filter)
+    {
+        var syllabuses = await _syllabusService.GetAllAsync(filter);
         return Ok(syllabuses);
     }
 
@@ -75,7 +122,8 @@ public class SyllabusesController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var result = await _syllabusService.UpdateAsync(id, dto);
+        int? userId = int.TryParse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var parsed) ? parsed : null;
+        var result = await _syllabusService.UpdateAsync(id, dto, userId);
 
         if (!result.Success)
         {

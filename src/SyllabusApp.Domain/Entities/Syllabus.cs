@@ -7,6 +7,7 @@ public class Syllabus : BaseEntity
     public int LectureHours { get; set; }
     public int ExerciseHours { get; set; }
     public int LaboratoryHours { get; set; }
+    public string Description { get; set; } = string.Empty;
     public string CourseObjectives { get; set; } = string.Empty;
     public string AssessmentMethod { get; set; } = string.Empty;
     public string Prerequisites { get; set; } = string.Empty;

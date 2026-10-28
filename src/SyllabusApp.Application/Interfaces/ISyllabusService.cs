@@ -1,14 +1,22 @@
+using SyllabusApp.Application.Dtos.Curriculum;
 using SyllabusApp.Application.Dtos.Syllabuses;
+using SyllabusApp.Application.Dtos.SyllabusVersions;
 
 namespace SyllabusApp.Application.Interfaces;
 
 public interface ISyllabusService
 {
-    Task<IEnumerable<SyllabusDto>> GetAllAsync();
+    Task<IEnumerable<SyllabusDto>> GetAllAsync(SyllabusFilterDto? filter = null);
     Task<SyllabusDto?> GetByIdAsync(int id);
     Task<SyllabusResult> CreateAsync(CreateSyllabusDto dto, int lecturerId);
-    Task<SyllabusResult> UpdateAsync(int id, UpdateSyllabusDto dto);
+    Task<SyllabusResult> UpdateAsync(int id, UpdateSyllabusDto dto, int? userId = null);
     Task<bool> DeleteAsync(int id);
+
+    /// <summary>Historia wersji sylabusa (od najnowszej). Null, gdy sylabus nie istnieje.</summary>
+    Task<IEnumerable<SyllabusVersionDto>?> GetVersionsAsync(int syllabusId);
+
+    /// <summary>Siatka przedmiotów kierunku (opcjonalnie dla danego roku akademickiego).</summary>
+    Task<CurriculumGridDto?> GetCurriculumGridAsync(int fieldOfStudyId, string? academicYear);
 }
 
 public class SyllabusResult

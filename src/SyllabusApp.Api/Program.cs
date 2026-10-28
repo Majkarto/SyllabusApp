@@ -49,6 +49,7 @@ builder.Services.AddScoped<ILearningOutcomeService, LearningOutcomeService>();
 builder.Services.AddScoped<ILiteratureService, LiteratureService>();
 builder.Services.AddScoped<IWorkloadItemService, WorkloadItemService>();
 builder.Services.AddScoped<ISyllabusService, SyllabusService>();
+builder.Services.AddScoped<ISyllabusExportService, SyllabusExportService>();
 
 
 builder.Services.AddAuthentication(options =>

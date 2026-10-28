@@ -20,6 +20,7 @@ else
 {
     <EditForm Model="_model" OnValidSubmit="SubmitAsync" class="mt-6 max-w-2xl space-y-4">
         <DataAnnotationsValidator />
+        <ValidationSummary class="rounded bg-red-50 px-3 py-2 text-sm text-red-700" />
 
         <div>
             <label class="form-label">Przedmiot</label>
@@ -62,6 +63,14 @@ else
             </div>
         </div>
 
+        <p class="text-xs text-slate-500">1 ECTS = 25-30 h pracy studenta. Łączna liczba godzin zajęć nie może przekroczyć ECTS × 30.</p>
+
+        <div>
+            <label class="form-label">Opis przedmiotu</label>
+            <InputTextArea @bind-Value="_model.Description" class="form-input" rows="4" />
+            <ValidationMessage For="@(() => _model.Description)" class="form-error" />
+        </div>
+
         <div>
             <label class="form-label">Cel zajęć</label>
             <InputTextArea @bind-Value="_model.CourseObjectives" class="form-input" rows="3" />
@@ -79,6 +88,14 @@ else
             <InputTextArea @bind-Value="_model.Prerequisites" class="form-input" rows="3" />
             <ValidationMessage For="@(() => _model.Prerequisites)" class="form-error" />
         </div>
+
+        @if (Id.HasValue)
+        {
+            <div>
+                <label class="form-label">Opis zmian (trafi do historii wersji)</label>
+                <InputText @bind-Value="_model.ChangeDescription" class="form-input" placeholder="np. aktualizacja literatury" />
+            </div>
+        }
 
         @if (_errorMessage != null)
         {
@@ -98,7 +115,7 @@ else
     [Parameter]
     public int? Id { get; set; }
 
-    private readonly CreateSyllabusDto _model = new();
+    private readonly UpdateSyllabusDto _model = new();
     private List<CourseDto> _courses = [];
     private bool _loading;
     private bool _isSubmitting;
@@ -115,6 +132,7 @@ else
             if (existing != null)
             {
                 _model.AcademicYear = existing.AcademicYear;
+                _model.Description = existing.Description;
                 _model.EctsPoints = existing.EctsPoints;
                 _model.LectureHours = existing.LectureHours;
                 _model.ExerciseHours = existing.ExerciseHours;
@@ -148,27 +166,27 @@ else
 
     private async Task<bool> CreateAsync()
     {
-        var result = await SyllabusApiClient.CreateAsync(_model);
-        _errorMessage = result.Success ? null : result.ErrorMessage;
-        return result.Success;
-    }
-
-    private async Task<bool> UpdateAsync(int id)
-    {
-        var dto = new UpdateSyllabusDto
+        var dto = new CreateSyllabusDto
         {
             AcademicYear = _model.AcademicYear,
             EctsPoints = _model.EctsPoints,
             LectureHours = _model.LectureHours,
             ExerciseHours = _model.ExerciseHours,
             LaboratoryHours = _model.LaboratoryHours,
+            Description = _model.Description,
             CourseObjectives = _model.CourseObjectives,
             AssessmentMethod = _model.AssessmentMethod,
             Prerequisites = _model.Prerequisites,
             CourseId = _model.CourseId,
         };
+        var result = await SyllabusApiClient.CreateAsync(dto);
+        _errorMessage = result.Success ? null : result.ErrorMessage;
+        return result.Success;
+    }
 
-        var result = await SyllabusApiClient.UpdateAsync(id, dto);
+    private async Task<bool> UpdateAsync(int id)
+    {
+        var result = await SyllabusApiClient.UpdateAsync(id, _model);
         _errorMessage = result.Success ? null : result.ErrorMessage;
         return result.Success;
     }

@@ -1,0 +1,138 @@
+@page "/curriculum"
+@attribute [Authorize]
+@using SyllabusApp.Application.Dtos.Curriculum
+@using SyllabusApp.Application.Dtos.FieldOfStudies
+@using SyllabusApp.Web.Services.ApiClients
+@inject SyllabusApiClient SyllabusApiClient
+@inject FieldOfStudyApiClient FieldOfStudyApiClient
+
+<PageTitle>Siatka przedmiotów</PageTitle>
+
+<h1 class="text-2xl font-semibold text-slate-800">Siatka przedmiotów</h1>
+<p class="mt-1 text-sm text-slate-500">Przedmioty kierunku w podziale na semestry, z liczbą godzin i punktów ECTS z sylabusów.</p>
+
+<form class="mt-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4" @onsubmit="LoadAsync">
+    <div class="min-w-64">
+        <label class="form-label">Kierunek</label>
+        <select class="form-input" @bind="_fieldOfStudyId">
+            <option value="0">-- wybierz --</option>
+            @foreach (var field in _fieldsOfStudy)
+            {
+                <option value="@field.Id">@field.Name (@field.Code)</option>
+            }
+        </select>
+    </div>
+    <div>
+        <label class="form-label">Rok akademicki (opcjonalnie)</label>
+        <input class="form-input" placeholder="np. 2026/2027" @bind="_academicYear" />
+    </div>
+    <button type="submit" class="btn-primary">Pokaż siatkę</button>
+</form>
+
+@if (_errorMessage != null)
+{
+    <div class="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
+}
+
+@if (_grid != null)
+{
+    @if (_grid.Semesters.Count == 0)
+    {
+        <p class="mt-4 text-slate-500">Kierunek nie ma jeszcze przedmiotów.</p>
+    }
+    else
+    {
+        <div class="mt-4 overflow-x-auto">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Kod</th><th>Przedmiot</th>
+                        <th class="text-right">Wykłady</th><th class="text-right">Ćwiczenia</th>
+                        <th class="text-right">Laboratoria</th><th class="text-right">Razem (h)</th>
+                        <th class="text-right">ECTS</th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var semester in _grid.Semesters)
+                    {
+                        <tr class="bg-slate-100">
+                            <td colspan="8" class="font-semibold text-slate-700">Semestr @semester.Semester</td>
+                        </tr>
+                        @foreach (var course in semester.Courses)
+                        {
+                            <tr>
+                                <td>@course.CourseCode</td>
+                                <td>@course.CourseName</td>
+                                <td class="text-right">@course.LectureHours</td>
+                                <td class="text-right">@course.ExerciseHours</td>
+                                <td class="text-right">@course.LaboratoryHours</td>
+                                <td class="text-right font-medium">@course.TotalHours</td>
+                                <td class="text-right">@course.EctsPoints</td>
+                                <td class="text-right">
+                                    @if (course.SyllabusId.HasValue)
+                                    {
+                                        <a href="/syllabuses/@course.SyllabusId" class="text-blue-600 hover:underline">Sylabus</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-xs text-amber-700">brak sylabusa</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        <tr>
+                            <td colspan="5" class="text-right text-slate-500">Suma semestru @semester.Semester</td>
+                            <td class="text-right font-semibold">@semester.TotalHours</td>
+                            <td class="text-right font-semibold">@semester.TotalEcts</td>
+                            <td></td>
+                        </tr>
+                    }
+                    <tr class="bg-slate-100">
+                        <td colspan="5" class="text-right font-semibold">Razem kierunek</td>
+                        <td class="text-right font-semibold">@_grid.TotalHours</td>
+                        <td class="text-right font-semibold">@_grid.TotalEcts</td>
+                        <td></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    }
+}
+
+@code {
+    private List<FieldOfStudyDto> _fieldsOfStudy = [];
+    private int _fieldOfStudyId;
+    private string? _academicYear;
+    private CurriculumGridDto? _grid;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _fieldsOfStudy = await FieldOfStudyApiClient.GetAllAsync();
+        if (_fieldsOfStudy.Count > 0)
+        {
+            _fieldOfStudyId = _fieldsOfStudy[0].Id;
+            await LoadAsync();
+        }
+    }
+
+    private async Task LoadAsync()
+    {
+        _errorMessage = null;
+        if (_fieldOfStudyId == 0)
+        {
+            _errorMessage = "Wybierz kierunek.";
+            return;
+        }
+
+        try
+        {
+            _grid = await SyllabusApiClient.GetCurriculumGridAsync(_fieldOfStudyId, _academicYear);
+        }
+        catch (HttpRequestException)
+        {
+            _grid = null;
+            _errorMessage = "Nie udało się pobrać siatki przedmiotów.";
+        }
+    }
+}
