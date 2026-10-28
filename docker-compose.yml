@@ -27,7 +27,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      ASPNETCORE_ENVIRONMENT: Development   # wlacza Scalar UI pod /scalar
+      ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=syllabus_db;Username=postgres;Password=postgres"
       Jwt__Key: "docker-dev-key-zmien-mnie-min-32-znaki-1234567890"
       DefaultAdmin__Email: "admin@syllabus.local"

@@ -10,7 +10,6 @@ public class SyllabusServiceTests
 {
     private const int LecturerId = 1;
 
-    /// <summary>Baza w pamięci z dwoma ośrodkami, kierunkami i trzema przedmiotami.</summary>
     private static SyllabusDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<SyllabusDbContext>()
@@ -140,7 +139,7 @@ public class SyllabusServiceTests
         var docx = await exporter.ExportDocxAsync(created.Id);
 
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(pdf!, 0, 4));
-        Assert.Equal("PK", System.Text.Encoding.ASCII.GetString(docx!, 0, 2)); // DOCX to archiwum ZIP
+        Assert.Equal("PK", System.Text.Encoding.ASCII.GetString(docx!, 0, 2));
         Assert.Null(await exporter.ExportPdfAsync(999));
     }
 
@@ -156,7 +155,7 @@ public class SyllabusServiceTests
         Assert.NotNull(grid);
         Assert.Equal([1, 2], grid.Semesters.Select(s => s.Semester));
         Assert.Equal(60, grid.Semesters[0].TotalHours);
-        Assert.Null(grid.Semesters[1].Courses[0].SyllabusId); // Bazy danych bez sylabusa
+        Assert.Null(grid.Semesters[1].Courses[0].SyllabusId);
         Assert.Equal(5, grid.TotalEcts);
     }
 }

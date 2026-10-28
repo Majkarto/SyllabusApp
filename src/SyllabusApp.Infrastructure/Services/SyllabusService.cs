@@ -18,7 +18,6 @@ public class SyllabusService : ISyllabusService
         _dbContext = dbContext;
     }
 
-    // Sylabus razem z przedmiotem, kierunkiem, wydziałem, ośrodkiem i wersjami
     private IQueryable<Syllabus> SyllabusesWithDetails() => _dbContext.Syllabuses
         .Include(s => s.Course).ThenInclude(c => c.FieldOfStudy).ThenInclude(f => f.Faculty).ThenInclude(f => f.Location)
         .Include(s => s.Versions);
@@ -76,7 +75,6 @@ public class SyllabusService : ISyllabusService
         _dbContext.Syllabuses.Add(syllabus);
         await _dbContext.SaveChangesAsync();
 
-        // Pierwsza wersja = stan w chwili utworzenia
         await AddVersionAsync(syllabus, 1, "Utworzenie sylabusa", lecturerId);
 
         return SyllabusResult.Ok((await GetByIdAsync(syllabus.Id))!);
@@ -102,7 +100,6 @@ public class SyllabusService : ISyllabusService
         syllabus.UpdatedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
 
-        // Każda edycja zapisuje nową wersję do historii
         var lastVersion = await _dbContext.SyllabusVersions
             .Where(v => v.SyllabusId == id)
             .MaxAsync(v => (int?)v.VersionNumber) ?? 0;
@@ -177,7 +174,6 @@ public class SyllabusService : ISyllabusService
                 Semester = g.Key,
                 Courses = g.OrderBy(c => c.Code).Select(c =>
                 {
-                    // Dla wybranego roku bierzemy jego sylabus, bez roku - najnowszy
                     var syllabus = string.IsNullOrWhiteSpace(academicYear)
                         ? c.Syllabuses.OrderByDescending(s => s.AcademicYear).ThenByDescending(s => s.CreatedAt).FirstOrDefault()
                         : c.Syllabuses.FirstOrDefault(s => s.AcademicYear == academicYear);

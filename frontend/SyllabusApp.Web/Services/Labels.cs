@@ -2,7 +2,6 @@ using SyllabusApp.Domain.Entities;
 
 namespace SyllabusApp.Web.Services;
 
-/// <summary>Polskie nazwy wartości enumów wyświetlane w interfejsie.</summary>
 public static class Labels
 {
     public static string Status(SyllabusStatus status) => status switch

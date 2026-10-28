@@ -1,0 +1,327 @@
+=====================================================================
+  SyllabusApp - CO ZOSTALO ZROBIONE I JAK TO DZIALA (na chlopski rozum)
+=====================================================================
+
+Ten plik tlumaczy krok po kroku, co dopisalem do projektu i jak to dziala.
+Czytaj po kolei - kazdy punkt buduje na poprzednim.
+
+
+---------------------------------------------------------------------
+1. NAJPIERW OGOLNIE: Z CZEGO SKLADA SIE APLIKACJA
+---------------------------------------------------------------------
+
+Aplikacja to trzy osobne "klocki", ktore ze soba rozmawiaja:
+
+  [Przegladarka]  --->  [FRONTEND]  --->  [BACKEND / API]  --->  [BAZA DANYCH]
+                         Blazor            ASP.NET Core           PostgreSQL
+
+ - FRONTEND (folder frontend/SyllabusApp.Web)
+   To, co widzi uzytkownik: strony, formularze, tabelki, przyciski.
+   Napisany w Blazor WebAssembly, czyli w C#, ale dziala w przegladarce.
+
+ - BACKEND / API (folder src/)
+   "Mozg". Frontend wysyla do niego pytania typu "daj mi liste sylabusow"
+   albo "zapisz ten sylabus". Backend sprawdza, czy uzytkownik moze to
+   zrobic, liczy, waliduje i gada z baza.
+
+ - BAZA DANYCH (PostgreSQL)
+   Szafa na dane. Trzyma sylabusy, przedmioty, uzytkownikow itd.
+
+Frontend NIGDY nie gada z baza bezposrednio - zawsze przez API.
+
+
+---------------------------------------------------------------------
+2. JAK JEST POUKLADANY BACKEND (foldery w src/)
+---------------------------------------------------------------------
+
+Backend jest pociety na 4 warstwy. Kazda ma swoja robote:
+
+ - SyllabusApp.Domain
+     "Czym sa rzeczy". Klasy encji: Syllabus, Course, Faculty, Location...
+     Same pola, zero logiki. To jest mapa tabel w bazie.
+
+ - SyllabusApp.Application
+     "Co mozna z tymi rzeczami zrobic". Tu sa:
+       * DTO - paczki danych wysylane miedzy frontendem a API
+         (np. CreateSyllabusDto = to, co przychodzi z formularza)
+       * interfejsy serwisow (np. ISyllabusService - lista operacji)
+       * reguly walidacji (SyllabusRules)
+     Ten projekt jest uzywany TAKZE przez frontend - dlatego walidacja
+     dziala i w przegladarce, i na serwerze, bez pisania jej dwa razy.
+
+ - SyllabusApp.Infrastructure
+     "Jak to faktycznie zrobic". Prawdziwy kod serwisow, ktory gada z baza
+     (SyllabusService, SyllabusExportService...), DbContext, migracje bazy.
+
+ - SyllabusApp.Api
+     "Drzwi wejsciowe". Kontrolery, czyli adresy URL (np. GET /syllabuses).
+     Kontroler odbiera zadanie, przekazuje je do serwisu i odsyla wynik.
+
+Przyklad drogi jednego klikniecia "Zapisz sylabus":
+  formularz (frontend)
+    -> SyllabusApiClient wysyla PUT /syllabuses/5
+    -> SyllabusesController.Update (Api)
+    -> SyllabusService.UpdateAsync (Infrastructure)
+    -> zapis do bazy przez SyllabusDbContext
+    -> odpowiedz wraca ta sama droga do przegladarki
+
+
+---------------------------------------------------------------------
+3. DOCKER - "ODPAL WSZYSTKO JEDNA KOMENDA"
+---------------------------------------------------------------------
+
+Docker pakuje kazdy klocek do osobnego "kontenera" (taki mini-komputer
+z gotowym srodowiskiem). Dzieki temu nie trzeba nic instalowac recznie.
+
+Pliki:
+ - src/SyllabusApp.Api/Dockerfile
+     Przepis na kontener z API. Najpierw kompiluje projekt (obraz "sdk"),
+     potem wrzuca gotowy program do lekkiego obrazu "aspnet".
+     Doinstalowuje tez curl - potrzebny do sprawdzania zdrowia (punkt 4).
+
+ - frontend/SyllabusApp.Web/Dockerfile
+     Przepis na kontener z frontendem. Generuje plik CSS z Tailwinda
+     (bo output.css nie jest w repo), wpisuje adres API do appsettings.json,
+     kompiluje Blazora i wrzuca gotowe pliki do serwera nginx.
+
+ - frontend/SyllabusApp.Web/nginx.conf
+     Ustawienia nginx. Najwazniejsza linijka: try_files ... /index.html
+     Bez niej odswiezenie strony np. /syllabuses dawaloby blad 404,
+     bo takiego pliku nie ma - to Blazor sam obsluguje adresy.
+
+ - docker-compose.yml
+     Spis wszystkich kontenerow i jak sa polaczone:
+       db  - baza PostgreSQL           (port 5432)
+       api - backend                   (port 8081)
+       web - frontend                  (port 8080)
+     Tu tez sa ustawienia API przez zmienne srodowiskowe
+     (haslo do bazy, klucz JWT, konto admina). Zapis "Jwt__Key" oznacza
+     to samo co "Jwt:Key" w appsettings.json.
+     "depends_on ... service_healthy" = API startuje dopiero, gdy baza
+     jest gotowa.
+
+ - .dockerignore
+     Czego NIE kopiowac do kontenera (bin, obj, .git itd.).
+
+Uruchomienie:
+     docker compose up -d --build
+Potem:
+     http://localhost:8080          - aplikacja
+     http://localhost:8081/scalar   - dokumentacja API (mozna klikac endpointy)
+     http://localhost:8081/health   - stan zdrowia
+Login: admin@syllabus.local / Admin1234
+Zatrzymanie: docker compose down
+
+Dodatkowo w Program.cs API dodalem automatyczne migracje przy starcie
+(Database.MigrateAsync). Na pustej bazie w Dockerze tabele tworza sie same.
+
+
+---------------------------------------------------------------------
+4. MONITORING - "CZY APLIKACJA ZYJE?"
+---------------------------------------------------------------------
+
+W Program.cs:
+     builder.Services.AddHealthChecks().AddDbContextCheck<SyllabusDbContext>("database");
+     app.MapHealthChecks("/health");
+
+Co to robi: pod adresem /health API sprawdza, czy umie polaczyc sie z baza.
+ - wszystko ok  -> "Healthy"   (kod 200)
+ - baza lezy    -> "Unhealthy" (kod 503)
+
+Docker co 15 sekund pyta /health (sekcja healthcheck w docker-compose.yml).
+Wynik widac w komendzie:
+     docker compose ps
+przy kontenerze pojawia sie "healthy" albo "unhealthy".
+Logi aplikacji: docker compose logs api
+
+
+---------------------------------------------------------------------
+5. NOWE FUNKCJE (wymagania z listy prowadzacego)
+---------------------------------------------------------------------
+
+5.1 Pole "Opis przedmiotu"
+    - Domain/Entities/Syllabus.cs: nowe pole Description
+    - Migracja Infrastructure/Migrations/..._AddSyllabusDescription.cs
+      dodaje kolumne w bazie
+    - Pole jest w formularzu i w szczegolach sylabusa.
+
+5.2 Jeden formularz dla tworzenia i edycji (SyllabusEditDto)
+    - Application/Dtos/Syllabuses/SyllabusEditDto.cs - wszystkie pola
+      formularza w jednym miejscu.
+    - CreateSyllabusDto i UpdateSyllabusDto po nim dziedzicza.
+      UpdateSyllabusDto ma dodatkowo ChangeDescription ("opis zmian").
+
+5.3 Walidacja godzin
+    - Application/Validation/SyllabusRules.cs
+    - Zasada: 1 punkt ECTS = 25-30 godzin pracy studenta.
+    - ValidateHours sprawdza:
+        * ECTS od 1 do 30
+        * godziny nie moga byc ujemne
+        * musi byc chociaz 1 godzina zajec
+        * wyklady + cwiczenia + laboratoria <= ECTS * 30
+    - CheckWorkload sprawdza, czy suma "Nakladu pracy studenta"
+      miesci sie w ECTS*25 ... ECTS*30. Jesli nie - na stronie
+      sylabusa pojawia sie zolte ostrzezenie, a jesli tak - zielone.
+    - SyllabusEditDto implementuje IValidatableObject, czyli sam sie
+      sprawdza. Blazor pokazuje bledy pod polem formularza, a API
+      odrzuca zle dane kodem 400.
+
+5.4 Wersjonowanie i historia zmian
+    - Infrastructure/Services/SyllabusService.cs
+    - Przy UTWORZENIU sylabusa zapisuje sie wersja 1 ("Utworzenie sylabusa").
+    - Przy kazdej EDYCJI zapisuje sie nowa wersja (2, 3, 4...)
+      z opisem zmian, autorem, data i kopia danych.
+      Kopia jest tez zapisana jako JSON (SnapshotJson) - pelny "zrzut".
+    - Tabela w bazie: SyllabusVersions (byla juz wczesniej, ale nic do
+      niej nie zapisywalo - teraz zapisuje).
+    - Adres API: GET /syllabuses/{id}/versions
+    - Na stronie szczegolow sylabusa na dole jest tabela "Historia zmian".
+
+5.5 Wyszukiwanie i filtrowanie
+    - Application/Dtos/Syllabuses/SyllabusFilterDto.cs - kryteria:
+      tekst, rok akademicki, status, osrodek, kierunek, semestr
+    - SyllabusService.GetAllAsync - kazde wypelnione kryterium dokleja
+      warunek "Where" do zapytania. Puste kryteria sa pomijane.
+      Szukany tekst sprawdzany jest w nazwie i kodzie przedmiotu,
+      opisie i celach. Wielkosc liter nie ma znaczenia.
+    - Adres: GET /syllabuses?search=bazy&locationId=1 ...
+    - Na liscie sylabusow jest panel z polami i przyciskiem "Szukaj".
+    - Lista pokazuje teraz tez kod, kierunek, osrodek, semestr i wersje.
+
+5.6 Siatka przedmiotow
+    - SyllabusService.GetCurriculumGridAsync
+      Bierze wszystkie przedmioty kierunku, grupuje po semestrze,
+      do kazdego dobiera sylabus (z podanego roku albo najnowszy)
+      i wyciaga godziny + ECTS.
+    - Application/Dtos/Curriculum/CurriculumGridDto.cs - sumy
+      (za semestr i caly kierunek) licza sie same we wlasciwosciach.
+    - Adres: GET /syllabuses/curriculum-grid?fieldOfStudyId=1
+    - Strona: frontend/.../Pages/Curriculum/CurriculumGrid.razor,
+      w menu "Siatka przedmiotow". Przedmiot bez sylabusa ma napis
+      "brak sylabusa".
+
+5.7 Rozne sylabusy dla osrodkow i roku
+    - To juz bylo w modelu: Osrodek -> Wydzial -> Kierunek -> Przedmiot
+      -> Sylabus (z polem AcademicYear). Ten sam przedmiot w Lodzi
+      i w Warszawie to dwa rozne przedmioty, wiec maja osobne sylabusy.
+      Dodalem tylko filtr po osrodku i wyswietlanie osrodka.
+
+5.8 Eksport do PDF i DOCX
+    - Infrastructure/Services/SyllabusExportService.cs
+    - Laduje sylabus ze wszystkim (przedmiot, kierunek, efekty,
+      literatura, naklad pracy) i sklada dokument.
+    - PDF robi biblioteka QuestPDF (darmowa licencja Community).
+    - DOCX (Word) robi biblioteka DocumentFormat.OpenXml od Microsoftu.
+    - Adresy: GET /syllabuses/{id}/export/pdf  i  .../export/docx
+    - Na stronie sylabusa przyciski "Eksport PDF" i "Eksport DOCX".
+      Haczyk: zwykly link nie wysle tokenu logowania, wiec plik jest
+      pobierany przez HttpClient (z tokenem), a potem mala funkcja
+      JavaScript "downloadFile" w wwwroot/index.html zapisuje go na dysk.
+
+5.9 Logowanie kontem uczelnianym
+    - NIE jest zaimplementowane w kodzie. Wymaganie mowilo "wymaga
+      researchu", wiec research jest opisany w dokumentacji
+      (rozdzial 5.2.2). W skrocie: najlepiej przez Microsoft Entra ID
+      (konta Microsoft 365 uczelni) i standard OpenID Connect.
+      Do wdrozenia trzeba zarejestrowac aplikacje u administratora IT
+      uczelni - dlatego tego nie odpalilismy.
+
+5.10 Drobiazgi we frontendzie
+    - Services/Labels.cs - polskie nazwy zamiast angielskich
+      (Draft -> Szkic, Knowledge -> Wiedza, Contact -> Zajecia kontaktowe).
+    - SyllabusApiClient.cs - nowe metody: filtry, wersje, siatka, eksport.
+
+
+---------------------------------------------------------------------
+6. TESTY
+---------------------------------------------------------------------
+
+Folder tests/SyllabusApp.Tests. Uruchomienie: dotnet test
+Jest 22 testy, wszystkie przechodza.
+
+Testy NIE potrzebuja prawdziwej bazy. Uzywaja bazy "w pamieci"
+(EF Core InMemory) - kazdy test dostaje nowa, pusta baze, wiec testy
+sobie nie przeszkadzaja.
+
+ - SyllabusRulesTests.cs (10) - reguly godzin: za duzo/za malo ECTS,
+   ujemne godziny, za duzo godzin, granice 25-30 h na ECTS.
+ - SyllabusServiceTests.cs (6) - tworzenie wersji 1, edycja daje wersje 2
+   i stara wersja ma stare wartosci, blad dla nieistniejacego przedmiotu,
+   filtrowanie, siatka przedmiotow, eksport PDF/DOCX (sprawdza, czy plik
+   zaczyna sie od "%PDF" i "PK" - tak zaczynaja sie te formaty).
+ - LocationServiceTests.cs (6) - dodawanie, lista, edycja, usuwanie osrodkow.
+
+Budowa testu (wzorzec Arrange-Act-Assert):
+   1. przygotuj dane       (np. utworz sylabus)
+   2. wykonaj akcje        (np. edytuj go)
+   3. sprawdz wynik Assert (np. czy jest wersja 2)
+
+
+---------------------------------------------------------------------
+7. DOKUMENTACJA (folder docs/)
+---------------------------------------------------------------------
+
+ - main.tex          - tresc sprawozdania (LaTeX, szablon SAN)
+ - san.cls           - szablon uczelni (bez zmian)
+ - bibliografia.bib  - zrodla
+ - img/              - zrzuty ekranu aplikacji
+ - main.pdf          - gotowy PDF (30 stron)
+
+Rozdzialy: Wstep, Cel projektu, Przeglad rozwiazan (USOS, Akademus,
+Uczelnia.XP), Architektura, Implementacja (frontend, backend, baza,
+Docker, testy, monitoring), Podsumowanie, Bibliografia.
+
+Kompilacja PDF (jesli zmienisz tekst): w folderze docs/
+     latexmk -pdf main.tex
+(potrzebny LaTeX z biberem, np. MiKTeX albo Overleaf - na Overleaf
+wystarczy wrzucic caly folder docs/).
+
+DO SPRAWDZENIA PRZED ODDANIEM:
+ - pisownia nazwiska na stronie tytulowej
+ - tabela porownania USOS/Akademus/Uczelnia.XP i adresy stron Akademus
+   i Uczelnia.XP w bibliografii (pisane z ogolnej wiedzy)
+
+
+---------------------------------------------------------------------
+8. SCIAGA NA OBRONE - 10 PYTAN, KTORE MOGA PASC
+---------------------------------------------------------------------
+
+P: Jak frontend gada z backendem?
+O: Przez REST API w JSON. Po zalogowaniu dostaje token JWT i dokleja go
+   do kazdego zapytania w naglowku Authorization.
+
+P: Co to jest JWT?
+O: Podpisany "bilet" z danymi uzytkownika (id, email, role). Serwer
+   sprawdza podpis i wie, kto pyta, bez trzymania sesji.
+
+P: Jak sa trzymane hasla?
+O: ASP.NET Core Identity zapisuje tylko hash hasla, nigdy samo haslo.
+
+P: Po co warstwy Domain/Application/Infrastructure/Api?
+O: Kazda ma jedna odpowiedzialnosc. Logika nie zalezy od bazy, a
+   frontend moze uzywac tych samych DTO i walidacji co backend.
+
+P: Jak dziala wersjonowanie?
+O: Kazdy zapis sylabusa dodaje wiersz do SyllabusVersions z kolejnym
+   numerem, autorem, data, opisem zmian i kopia danych w JSON.
+
+P: Skad wiadomo, ze godziny sie zgadzaja?
+O: 1 ECTS = 25-30 h pracy. Godziny zajec nie moga przekroczyc ECTS*30,
+   a suma nakladu pracy powinna byc miedzy ECTS*25 a ECTS*30.
+
+P: Jak dziala monitoring?
+O: Endpoint /health sprawdza polaczenie z baza. Docker odpytuje go
+   co 15 s i oznacza kontener jako healthy/unhealthy.
+
+P: Po co Docker?
+O: Zeby odpalic baze, API i frontend jedna komenda na kazdym komputerze,
+   bez recznej instalacji.
+
+P: Jak testujesz bez bazy?
+O: EF Core InMemory - baza w pamieci, nowa dla kazdego testu.
+
+P: Czemu nie ma logowania kontem uczelnianym?
+O: Zrobilem research - najlepsze jest OpenID Connect z Microsoft Entra ID.
+   Wdrozenie wymaga rejestracji aplikacji przez administratora IT
+   uczelni. Architektura jest gotowa: wystarczy dodac drugi sposob
+   logowania, ktory na koncu wyda ten sam token JWT co teraz.

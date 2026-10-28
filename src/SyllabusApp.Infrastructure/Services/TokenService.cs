@@ -19,7 +19,6 @@ public class TokenService : ITokenService
 
     public TokenResult GenerateAccessToken(User user, IList<string> roles)
     {
-        // 1. Konfiguracja z appsettings + User Secrets
         var jwtKey = _configuration["Jwt:Key"]
             ?? throw new InvalidOperationException("Jwt:Key nie jest skonfigurowany.");
         var jwtIssuer = _configuration["Jwt:Issuer"]
@@ -30,7 +29,6 @@ public class TokenService : ITokenService
 
         var expiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes);
 
-        // 2. Claims
         var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
@@ -51,7 +49,6 @@ public class TokenService : ITokenService
             claims.Add(new Claim(ClaimTypes.Role, role));
         }
 
-        // 3. Podpis + token
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

@@ -9,8 +9,6 @@
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="css/output.css" />
     <link rel="stylesheet" href="css/app.css" />
-    <!-- If you add any scoped CSS files, uncomment the following to load them
-    <link href="SyllabusApp.Web.styles.css" rel="stylesheet" /> -->
     <script type="importmap"></script>
 </head>
 
@@ -29,7 +27,6 @@
         <span class="dismiss">🗙</span>
     </div>
     <script>
-        // Zapisuje plik (np. eksport sylabusa) pobrany przez HttpClient z tokenem JWT
         window.downloadFile = (fileName, contentType, base64) => {
             const link = document.createElement("a");
             link.href = `data:${contentType};base64,${base64}`;

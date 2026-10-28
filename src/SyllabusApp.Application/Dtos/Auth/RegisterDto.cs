@@ -2,11 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SyllabusApp.Application.Dtos.Auth;
 
-/// <summary>
-/// Dane wymagane do rejestracji nowego użytkownika.
-/// Wszyscy rejestrowani userzy otrzymują rolę Student.
-/// Inne role nadaje admin osobnym endpointem (Etap 5).
-/// </summary>
 public class RegisterDto
 {
     [Required(ErrorMessage = "Email jest wymagany.")]

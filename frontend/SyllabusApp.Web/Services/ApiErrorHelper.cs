@@ -21,7 +21,6 @@ public static class ApiErrorHelper
         }
         catch (Exception)
         {
-            // Treść odpowiedzi nie była w oczekiwanym formacie JSON - spadamy do komunikatu ogólnego.
         }
 
         return $"Żądanie nie powiodło się (kod {(int)response.StatusCode}).";

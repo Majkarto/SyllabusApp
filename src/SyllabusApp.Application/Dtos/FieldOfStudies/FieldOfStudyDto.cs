@@ -9,8 +9,8 @@ public class FieldOfStudyDto
     public StudyLevel Level { get; set; }
     public int DurationSemesters { get; set; }
     public int FacultyId { get; set; }
-    public string FacultyName { get; set; } = string.Empty;   // z Faculty
-    public string FacultyCode { get; set; } = string.Empty;   // z Faculty
+    public string FacultyName { get; set; } = string.Empty;
+    public string FacultyCode { get; set; } = string.Empty;
 
     public DateTime CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }

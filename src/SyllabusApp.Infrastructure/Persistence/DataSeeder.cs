@@ -7,17 +7,10 @@ using SyllabusApp.Domain.Entities;
 
 namespace SyllabusApp.Infrastructure.Persistence;
 
-/// <summary>
-/// Wypełnia bazę początkowymi danymi: rolami i kontem admina.
-/// Idempotentny - można wywołać wielokrotnie, nie zduplikuje danych.
-/// </summary>
 public static class DataSeeder
 {
     public static async Task SeedAsync(IServiceProvider services)
     {
-        // Tworzymy scope - RoleManager i UserManager są Scoped,
-        // a my jesteśmy w trakcie startupu (poza request scope), więc musimy
-        // ręcznie zażądać scope'a
         using var scope = services.CreateScope();
         var sp = scope.ServiceProvider;
 
@@ -32,7 +25,6 @@ public static class DataSeeder
 
     private static async Task SeedRolesAsync(RoleManager<Role> roleManager, ILogger logger)
     {
-        // Opis ról - pole Description w naszej encji Role
         var roleDescriptions = new Dictionary<string, string>
         {
             { UserRoles.Admin, "Pełne uprawnienia administracyjne - zarządzanie systemem i rolami." },
@@ -75,8 +67,6 @@ public static class DataSeeder
         var adminFirstName = configuration["DefaultAdmin:FirstName"] ?? "Default";
         var adminLastName = configuration["DefaultAdmin:LastName"] ?? "Administrator";
 
-        // Walidacja - bez tych danych admin nie zostanie utworzony, ale aplikacja
-        // wystartuje normalnie (np. w testach na bazie in-memory nie chcemy admina)
         if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
         {
             logger.LogWarning("DefaultAdmin nie skonfigurowany w User Secrets/appsettings - pomijam tworzenie admina.");

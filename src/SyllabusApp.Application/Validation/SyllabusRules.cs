@@ -1,9 +1,5 @@
 namespace SyllabusApp.Application.Validation;
 
-/// <summary>
-/// Reguły poprawności liczby godzin w sylabusie.
-/// Przyjęto, że 1 punkt ECTS odpowiada 25-30 godzinom pracy studenta.
-/// </summary>
 public static class SyllabusRules
 {
     public const int MinEcts = 1;
@@ -11,7 +7,6 @@ public static class SyllabusRules
     public const int MinHoursPerEcts = 25;
     public const int MaxHoursPerEcts = 30;
 
-    /// <summary>Sprawdza godziny zajęć z formularza sylabusa.</summary>
     public static List<string> ValidateHours(int ects, int lectureHours, int exerciseHours, int laboratoryHours)
     {
         var errors = new List<string>();
@@ -32,10 +27,6 @@ public static class SyllabusRules
         return errors;
     }
 
-    /// <summary>
-    /// Sprawdza, czy suma nakładu pracy studenta zgadza się z punktami ECTS.
-    /// Zwraca null, gdy wszystko jest w porządku, albo treść ostrzeżenia.
-    /// </summary>
     public static string? CheckWorkload(int ects, int totalWorkloadHours)
     {
         var min = ects * MinHoursPerEcts;

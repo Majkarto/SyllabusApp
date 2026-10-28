@@ -45,7 +45,6 @@ public class SyllabusApiClient
         return await _http.GetFromJsonAsync<CurriculumGridDto>(url, ApiJson.Options);
     }
 
-    /// <summary>Pobiera plik eksportu ("pdf" albo "docx").</summary>
     public async Task<ApiResult<byte[]>> ExportAsync(int id, string format)
     {
         var response = await _http.GetAsync($"syllabuses/{id}/export/{format}");

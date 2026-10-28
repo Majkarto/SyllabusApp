@@ -21,7 +21,6 @@ public class SyllabusesController : ControllerBase
         _exportService = exportService;
     }
 
-    /// <summary>Historia wersji sylabusa (od najnowszej).</summary>
     [HttpGet("{id:int}/versions")]
     public async Task<IActionResult> GetVersions(int id)
     {
@@ -33,7 +32,6 @@ public class SyllabusesController : ControllerBase
         return Ok(versions);
     }
 
-    /// <summary>Siatka przedmiotow kierunku: semestry, godziny i ECTS.</summary>
     [HttpGet("curriculum-grid")]
     public async Task<IActionResult> GetCurriculumGrid([FromQuery] int fieldOfStudyId, [FromQuery] string? academicYear)
     {
@@ -45,7 +43,6 @@ public class SyllabusesController : ControllerBase
         return Ok(grid);
     }
 
-    /// <summary>Eksport sylabusa do pliku PDF.</summary>
     [HttpGet("{id:int}/export/pdf")]
     public async Task<IActionResult> ExportPdf(int id)
     {
@@ -55,7 +52,6 @@ public class SyllabusesController : ControllerBase
             : File(bytes, "application/pdf", $"sylabus-{id}.pdf");
     }
 
-    /// <summary>Eksport sylabusa do pliku DOCX (Word).</summary>
     [HttpGet("{id:int}/export/docx")]
     public async Task<IActionResult> ExportDocx(int id)
     {
@@ -65,7 +61,6 @@ public class SyllabusesController : ControllerBase
             : File(bytes, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", $"sylabus-{id}.docx");
     }
 
-    /// <summary>Lista sylabusow z opcjonalnym wyszukiwaniem i filtrami (query string).</summary>
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] SyllabusFilterDto filter)
     {

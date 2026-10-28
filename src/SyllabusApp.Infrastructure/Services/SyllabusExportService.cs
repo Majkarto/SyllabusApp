@@ -11,10 +11,6 @@ using SyllabusApp.Infrastructure.Persistence;
 
 namespace SyllabusApp.Infrastructure.Services;
 
-/// <summary>
-/// Eksport sylabusa do PDF (QuestPDF) i DOCX (Open XML SDK).
-/// Oba formaty mają tę samą treść: dane podstawowe, opisy, efekty, literaturę i nakład pracy.
-/// </summary>
 public class SyllabusExportService : ISyllabusExportService
 {
     private readonly SyllabusDbContext _dbContext;
@@ -37,8 +33,6 @@ public class SyllabusExportService : ISyllabusExportService
         .Include(s => s.Literature)
         .Include(s => s.WorkloadItems)
         .FirstOrDefaultAsync(s => s.Id == id);
-
-    // Wspólna treść dla obu formatów
 
     private static List<(string Label, string Value)> BasicInfo(Syllabus s) =>
     [
@@ -118,8 +112,6 @@ public class SyllabusExportService : ISyllabusExportService
         _ => t.ToString()
     };
 
-    // PDF
-
     public async Task<byte[]?> ExportPdfAsync(int syllabusId)
     {
         var s = await LoadAsync(syllabusId);
@@ -195,8 +187,6 @@ public class SyllabusExportService : ISyllabusExportService
                     table.Cell().Border(0.5f).Padding(3).Text(cell);
         });
     }
-
-    // DOCX
 
     public async Task<byte[]?> ExportDocxAsync(int syllabusId)
     {

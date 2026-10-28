@@ -2,9 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace SyllabusApp.Application.Dtos.Auth;
 
-/// <summary>
-/// Dane wymagane do zalogowania.
-/// </summary>
 public class LoginDto
 {
     [Required(ErrorMessage = "Email jest wymagany.")]

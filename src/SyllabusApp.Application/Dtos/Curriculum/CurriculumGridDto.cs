@@ -1,6 +1,5 @@
 namespace SyllabusApp.Application.Dtos.Curriculum;
 
-/// <summary>Siatka przedmiotów kierunku: semestry z przedmiotami i godzinami.</summary>
 public class CurriculumGridDto
 {
     public int FieldOfStudyId { get; set; }
@@ -24,7 +23,6 @@ public class CurriculumCourseDto
     public int CourseId { get; set; }
     public string CourseCode { get; set; } = string.Empty;
     public string CourseName { get; set; } = string.Empty;
-    /// <summary>Null, gdy przedmiot nie ma jeszcze sylabusa.</summary>
     public int? SyllabusId { get; set; }
     public int LectureHours { get; set; }
     public int ExerciseHours { get; set; }

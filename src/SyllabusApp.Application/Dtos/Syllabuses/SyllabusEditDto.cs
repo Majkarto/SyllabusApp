@@ -3,7 +3,6 @@ using SyllabusApp.Application.Validation;
 
 namespace SyllabusApp.Application.Dtos.Syllabuses;
 
-/// <summary>Wspólne pola formularza sylabusa (tworzenie i edycja).</summary>
 public abstract class SyllabusEditDto : IValidatableObject
 {
     [Required(ErrorMessage = "Rok akademicki jest wymagany.")]

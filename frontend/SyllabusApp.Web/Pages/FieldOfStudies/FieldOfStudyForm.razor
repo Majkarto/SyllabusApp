@@ -80,8 +80,6 @@ else
     [Parameter]
     public int? Id { get; set; }
 
-    // Enum StudyLevel zaczyna się od 1 - jawnie ustawiamy domyślną wartość, bo <InputSelect>
-    // wizualnie pokazuje pierwszą opcję, ale bez tego model zostałby przy default(enum)=0.
     private readonly CreateFieldOfStudyDto _model = new() { Level = StudyLevel.Bachelor };
     private List<FacultyDto> _faculties = [];
     private bool _loading;

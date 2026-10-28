@@ -57,7 +57,6 @@ else
         <div class="mt-4 rounded bg-red-50 px-3 py-2 text-sm text-red-700">@_errorMessage</div>
     }
 
-    <!-- Efekty uczenia się -->
     <section class="mt-8">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold text-slate-800">Efekty uczenia się</h2>
@@ -128,7 +127,6 @@ else
         }
     </section>
 
-    <!-- Literatura -->
     <section class="mt-8">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold text-slate-800">Literatura</h2>
@@ -204,7 +202,6 @@ else
         }
     </section>
 
-    <!-- Nakład pracy -->
     <section class="mt-8">
         <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold text-slate-800">Nakład pracy studenta</h2>
@@ -284,7 +281,6 @@ else
         }
     </section>
 
-    <!-- Historia wersji -->
     <section class="mt-8">
         <h2 class="text-lg font-semibold text-slate-800">Historia zmian</h2>
         @if (_versions.Count == 0)
@@ -331,9 +327,6 @@ else
     private bool _showLiteratureForm;
     private bool _showWorkloadItemForm;
 
-    // Enumy startują od 1 (0 to "brak wartości") - <InputSelect> renderuje pierwszą opcję jako
-    // wizualnie zaznaczoną, ale bez jawnego ustawienia tutaj powiązany model zostaje przy
-    // default(enum)=0, dopóki użytkownik ręcznie nie kliknie w select.
     private CreateLearningOutcomeDto _newLearningOutcome = new() { Category = LearningOutcomeCategory.Knowledge };
     private CreateLiteratureDto _newLiterature = new() { Type = LiteratureType.Required };
     private CreateWorkloadItemDto _newWorkloadItem = new() { Type = WorkloadType.Contact };

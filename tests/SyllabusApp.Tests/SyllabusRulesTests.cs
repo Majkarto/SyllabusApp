@@ -37,13 +37,12 @@ public class SyllabusRulesTests
     [Fact]
     public void ValidateHours_RejectsMoreContactHoursThanEctsAllows()
     {
-        // 2 ECTS = maks. 60 h, a zajęć jest 90 h
         var errors = SyllabusRules.ValidateHours(2, 60, 30, 0);
         Assert.Contains(errors, e => e.Contains("przekraczają"));
     }
 
     [Theory]
-    [InlineData(4, 100, true)]   // 4 ECTS = 100-120 h
+    [InlineData(4, 100, true)]
     [InlineData(4, 120, true)]
     [InlineData(4, 99, false)]
     [InlineData(4, 121, false)]

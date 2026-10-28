@@ -8,7 +8,6 @@
 \usepackage{tikz}
 \usetikzlibrary{positioning,arrows.meta,fit}
 
-% Listingi kodu
 \lstdefinestyle{kod}{
   basicstyle=\ttfamily\footnotesize,
   keywordstyle=\bfseries,
@@ -49,9 +48,7 @@
 \maketitlepage
 \spistresci
 
-% ==================================================================
 \section{Wstęp}
-% ==================================================================
 
 Sylabus jest jednym z podstawowych dokumentów opisujących proces kształcenia na uczelni wyższej. Zawiera informacje o przedmiocie: jego cele, efekty uczenia się, wymagania wstępne, formy zajęć wraz z liczbą godzin, punkty ECTS, sposób oceniania oraz wykaz literatury. Obowiązek udostępniania programów studiów, a w ich ramach opisów przedmiotów, wynika z ustawy Prawo o szkolnictwie wyższym i nauce \cite{ustawa_psw}, natomiast sposób przeliczania nakładu pracy studenta na punkty ECTS opisuje europejski system ECTS \cite{ects_guide}.
 
@@ -63,9 +60,7 @@ Aplikacja została zbudowana na platformie .NET 10: backend w technologii ASP.NE
 
 Projekt został zrealizowany indywidualnie -- autor odpowiada za całość prac (100\% wkładu): analizę wymagań, projekt architektury, implementację backendu, frontendu i bazy danych, konteneryzację, testy oraz dokumentację.
 
-% ==================================================================
 \section{Cel projektu}
-% ==================================================================
 
 \subsection{Problem}
 
@@ -132,9 +127,7 @@ Eksport do PDF i DOCX & Biblioteki QuestPDF i Open XML SDK, endpointy \texttt{/e
   \item \textbf{Użyteczność} -- responsywny interfejs w języku polskim, czytelne komunikaty błędów walidacji.
 \end{itemize}
 
-% ==================================================================
 \section{Przegląd istniejących rozwiązań}
-% ==================================================================
 
 Na polskim rynku funkcjonuje kilka systemów obsługujących sylabusy, zwykle jako moduły większych systemów zarządzania uczelnią. W rozdziale przeanalizowano trzy z nich.
 
@@ -183,9 +176,7 @@ Koszt licencji & konsorcjum & płatny & płatny & brak \\
 
 Istniejące rozwiązania są rozbudowanymi systemami klasy ERP dla uczelni, w których sylabus stanowi jedynie mały fragment. SyllabusApp koncentruje się wyłącznie na sylabusach, dzięki czemu jest prosty we wdrożeniu (jeden plik \texttt{docker-compose.yml}), posiada nowoczesny interfejs i otwarte REST API, a jednocześnie realizuje kluczowe funkcje: wersjonowanie, siatkę przedmiotów, walidację i eksport dokumentów.
 
-% ==================================================================
 \section{Opis architektury}
-% ==================================================================
 
 \subsection{Architektura ogólna}
 
@@ -309,9 +300,7 @@ Monitoring & ASP.NET Core Health Checks \cite{ms_healthchecks}, healthchecki Doc
 \end{tabularx}
 \end{table}
 
-% ==================================================================
 \section{Opis implementacji}
-% ==================================================================
 
 W rozdziale omówiono kluczowe aspekty implementacyjne projektu z podziałem na frontend, backend, bazę danych, konteneryzację, testy i monitoring.
 
@@ -578,9 +567,7 @@ app.MapHealthChecks("/health");
 
 Endpoint jest wykorzystywany przez Docker: healthcheck kontenera \texttt{api} co 15 sekund odpytuje \texttt{/health}, a kontener bazy jest sprawdzany poleceniem \texttt{pg\_isready}. Aktualny stan wszystkich usług (\texttt{healthy} / \texttt{unhealthy}) można zobaczyć poleceniem \texttt{docker compose ps}, a w razie awarii Docker automatycznie restartuje kontenery (\texttt{restart: unless-stopped}). Dodatkowo aplikacja zapisuje logi (m.in. wykonywane zapytania SQL, błędy, tworzenie kont), dostępne poleceniem \texttt{docker compose logs api}.
 
-% ==================================================================
 \section{Podsumowanie i wnioski}
-% ==================================================================
 
 W ramach projektu zbudowano kompletną aplikację webową do zarządzania sylabusami uczelni wyższej. Zrealizowano wszystkie elementy wymagane w projekcie: frontend (Blazor WebAssembly), backend (ASP.NET Core Web API), bazę danych (PostgreSQL z EF Core), konteneryzację (Docker Compose), testy jednostkowe (xUnit) oraz monitoring stanu aplikacji (health checks). Spełniono również wymagania funkcjonalne: formularze sylabusa, wersjonowanie z historią zmian, obsługę wielu ośrodków i roczników, siatkę przedmiotów, walidację godzin, wyszukiwanie i filtrowanie oraz eksport do PDF i DOCX. Dla logowania kontem uczelnianym przeprowadzono research i zaproponowano sposób integracji z Microsoft Entra ID.
 

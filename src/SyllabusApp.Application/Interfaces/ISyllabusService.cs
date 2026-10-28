@@ -12,10 +12,8 @@ public interface ISyllabusService
     Task<SyllabusResult> UpdateAsync(int id, UpdateSyllabusDto dto, int? userId = null);
     Task<bool> DeleteAsync(int id);
 
-    /// <summary>Historia wersji sylabusa (od najnowszej). Null, gdy sylabus nie istnieje.</summary>
     Task<IEnumerable<SyllabusVersionDto>?> GetVersionsAsync(int syllabusId);
 
-    /// <summary>Siatka przedmiotów kierunku (opcjonalnie dla danego roku akademickiego).</summary>
     Task<CurriculumGridDto?> GetCurriculumGridAsync(int fieldOfStudyId, string? academicYear);
 }
 

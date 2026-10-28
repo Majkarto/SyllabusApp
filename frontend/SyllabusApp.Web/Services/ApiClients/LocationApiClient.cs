@@ -41,8 +41,6 @@ public class LocationApiClient
         return ApiResult<LocationDto>.Ok(created!);
     }
 
-    // Uwaga: LocationsController.Update zwraca 204 No Content (bez ciała) - inaczej niż
-    // pozostałe kontrolery, które zwracają zaktualizowane DTO. Dlatego tu ApiResult bez danych.
     public async Task<ApiResult> UpdateAsync(int id, UpdateLocationDto dto)
     {
         var response = await _http.PutAsJsonAsync($"locations/{id}", dto, ApiJson.Options);

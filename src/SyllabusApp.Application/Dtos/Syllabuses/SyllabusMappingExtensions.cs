@@ -56,7 +56,6 @@ public static class SyllabusMappingExtensions
         entity.CourseId = dto.CourseId;
     }
 
-    /// <summary>Tworzy wpis historii z aktualnego stanu sylabusa.</summary>
     public static SyllabusVersion ToVersion(this Syllabus entity, int versionNumber, string changeDescription,
         int? createdById, string snapshotJson)
     {

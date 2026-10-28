@@ -1,10 +1,5 @@
 namespace SyllabusApp.Application.Dtos.Auth;
 
-/// <summary>
-/// Odpowiedź zwracana po pomyślnej rejestracji lub logowaniu.
-/// Zawiera token JWT oraz podstawowe dane usera do wyświetlenia w UI
-/// (bez konieczności robienia kolejnego requestu).
-/// </summary>
 public class AuthResponseDto
 {
     public string Token { get; set; } = string.Empty;

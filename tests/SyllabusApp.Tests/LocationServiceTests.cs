@@ -7,7 +7,6 @@ namespace SyllabusApp.Tests;
 
 public class LocationServiceTests
 {
-    // Kazdy test dostaje wlasna, pusta baze w pamieci
     private static SyllabusDbContext CreateDb()
     {
         var options = new DbContextOptionsBuilder<SyllabusDbContext>()
