@@ -16,7 +16,6 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(
             new System.Text.Json.Serialization.JsonStringEnumConverter()));
-builder.Services.AddControllers();
 
 builder.Services.AddDbContext<SyllabusDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -35,6 +34,10 @@ builder.Services.AddIdentity<User, Role>(options =>
 })
 .AddEntityFrameworkStores<SyllabusDbContext>()
 .AddDefaultTokenProviders();
+
+// Monitoring: /health sprawdza, czy API dziala i czy jest polaczenie z baza
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<SyllabusDbContext>("database");
 
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<ILocationService, LocationService>();
@@ -79,7 +82,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(BlazorClientCorsPolicy, policy =>
     {
-        policy.WithOrigins("https://localhost:7234", "http://localhost:5142")
+        var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>()
+            ?? ["https://localhost:7234", "http://localhost:5142"];
+        policy.WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -128,5 +133,17 @@ app.UseCors(BlazorClientCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHealthChecks("/health");
+
+// Zakladamy schemat bazy przy starcie (potrzebne m.in. w Dockerze na pustej bazie)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SyllabusDbContext>();
+    if (db.Database.IsRelational())
+    {
+        await db.Database.MigrateAsync();
+    }
+}
+
 await SyllabusApp.Infrastructure.Persistence.DataSeeder.SeedAsync(app.Services);
 app.Run();
