@@ -14,4 +14,23 @@ public static class Labels
         SyllabusStatus.Archived => "Zarchiwizowany",
         _ => status.ToString()
     };
+
+    public static string Category(LearningOutcomeCategory category) => category switch
+    {
+        LearningOutcomeCategory.Knowledge => "Wiedza",
+        LearningOutcomeCategory.Skills => "Umiejętności",
+        LearningOutcomeCategory.Social => "Kompetencje społeczne",
+        _ => category.ToString()
+    };
+
+    public static string Literature(LiteratureType type) =>
+        type == LiteratureType.Required ? "Podstawowa" : "Uzupełniająca";
+
+    public static string Workload(WorkloadType type) => type switch
+    {
+        WorkloadType.Contact => "Zajęcia kontaktowe",
+        WorkloadType.Independent => "Praca własna",
+        WorkloadType.Assessment => "Zaliczenie",
+        _ => type.ToString()
+    };
 }

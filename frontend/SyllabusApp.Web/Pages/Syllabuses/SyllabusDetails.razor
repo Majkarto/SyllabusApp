@@ -87,7 +87,7 @@ else
                     <InputSelect @bind-Value="_newLearningOutcome.Category" class="form-input">
                         @foreach (var category in Enum.GetValues<LearningOutcomeCategory>())
                         {
-                            <option value="@category">@category</option>
+                            <option value="@category">@Labels.Category(category)</option>
                         }
                     </InputSelect>
                 </div>
@@ -113,7 +113,7 @@ else
                         <tr>
                             <td>@outcome.Code</td>
                             <td>@outcome.Description</td>
-                            <td>@outcome.Category</td>
+                            <td>@Labels.Category(outcome.Category)</td>
                             <td class="text-right">
                                 <AuthorizeView Roles="@($"{UserRoles.Admin},{UserRoles.Lecturer}")">
                                     <Authorized>
@@ -162,7 +162,7 @@ else
                     <InputSelect @bind-Value="_newLiterature.Type" class="form-input">
                         @foreach (var type in Enum.GetValues<LiteratureType>())
                         {
-                            <option value="@type">@type</option>
+                            <option value="@type">@Labels.Literature(type)</option>
                         }
                     </InputSelect>
                 </div>
@@ -189,7 +189,7 @@ else
                             <td>@item.Title</td>
                             <td>@item.Author</td>
                             <td>@item.Publisher</td>
-                            <td>@item.Type</td>
+                            <td>@Labels.Literature(item.Type)</td>
                             <td class="text-right">
                                 <AuthorizeView Roles="@($"{UserRoles.Admin},{UserRoles.Lecturer}")">
                                     <Authorized>
@@ -234,7 +234,7 @@ else
                     <InputSelect @bind-Value="_newWorkloadItem.Type" class="form-input">
                         @foreach (var type in Enum.GetValues<WorkloadType>())
                         {
-                            <option value="@type">@type</option>
+                            <option value="@type">@Labels.Workload(type)</option>
                         }
                     </InputSelect>
                 </div>
@@ -269,7 +269,7 @@ else
                         <tr>
                             <td>@item.Description</td>
                             <td>@item.Hours</td>
-                            <td>@item.Type</td>
+                            <td>@Labels.Workload(item.Type)</td>
                             <td class="text-right">
                                 <AuthorizeView Roles="@($"{UserRoles.Admin},{UserRoles.Lecturer}")">
                                     <Authorized>
